@@ -1,3 +1,9 @@
+nimf (2018.07.05-1~bionic0706~3beol) bionic; urgency=medium
+
+  * 3beol libhangul
+
+ -- floor <createsc@gmail.com>  Sat, 02 Feb 2013 22:58:35 +0900
+
 nimf (2018.07.05) stable; urgency=medium
 
   * Fixed segmentation fault (resolves #108)

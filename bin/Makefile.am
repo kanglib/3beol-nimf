@@ -9,6 +9,7 @@ nimf_CFLAGS = \
 	-DG_LOG_DOMAIN=\"nimf\" \
 	-DNIMF_MODULE_DIR=\"$(libdir)/nimf/modules\" \
 	$(LIBNIMF_DEPS_CFLAGS) \
+	$(NIMF_LIBHANGUL_DEPS_CFLAGS) \
 	$(NIMF_DEPS_CFLAGS)
 
 nimf_LDFLAGS = $(NIMF_DEPS_LIBS)
@@ -22,7 +23,9 @@ nimf_settings_CFLAGS = \
 	-I$(top_srcdir)/libnimf \
 	$(NIMF_SETTINGS_DEPS_CFLAGS)
 
-nimf_settings_LDFLAGS = $(NIMF_SETTINGS_DEPS_LIBS)
+nimf_settings_LDFLAGS = 
+	$(NIMF_LIBHANGUL_DEPS_LIBS) \
+	$(NIMF_SETTINGS_DEPS_LIBS)
 nimf_settings_LDADD   = $(top_builddir)/libnimf/libnimf.la
 
 DISTCLEANFILES = Makefile.in

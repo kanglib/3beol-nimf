@@ -21,6 +21,7 @@
 
 #include <gtk/gtk.h>
 #include <glib/gi18n.h>
+#include <hangul.h>
 #include "config.h"
 #include "nimf.h"
 
@@ -368,38 +369,26 @@ nimf_settings_page_key_build_string (NimfSettingsPageKey *page_key,
     g_list_free (schema_list);
     g_free (id1);
   }
-  else if (g_str_has_prefix (page_key->key, "hidden-") == FALSE)
+  else if (g_strcmp0 (page_key->key, "layout") == 0)
   {
     gchar *id1;
-    GList *list;
 
     id1 = g_settings_get_string (page_key->gsettings, page_key->key);
 
-    for (list = key_list; list != NULL; list = list->next)
+    unsigned layoutCount = hangul_keyboard_list_get_count();
+    unsigned index;
+    for (index = 0; index < layoutCount; index++)
     {
-      gchar *key2;
-      gchar *prefix;
+      const gchar *id2 = hangul_keyboard_list_get_keyboard_id(index);
+      const gchar *val = hangul_keyboard_list_get_keyboard_name(index);
+      gtk_list_store_append (store, &iter);
+      gtk_list_store_set (store, &iter, 0, val, 1, id2, -1);
 
-      key2 = list->data;
-      prefix = g_strdup_printf ("hidden-%s-", page_key->key);
-
-      if (g_str_has_prefix (key2, prefix))
+      if (g_strcmp0 (id1, id2) == 0) 
       {
-        gchar *val;
-        const gchar *id2 = key2 + strlen (prefix);
-
-        val = g_settings_get_string (page_key->gsettings, key2);
-        gtk_list_store_append (store, &iter);
-        gtk_list_store_set (store, &iter, 0, val,
-                                          1, id2, -1);
-
-        if (g_strcmp0 (id1, id2) == 0)
-          gtk_combo_box_set_active_iter (GTK_COMBO_BOX (combo), &iter);
-
-        g_free (val);
+        gtk_combo_box_set_active_iter (GTK_COMBO_BOX (combo), &iter);
       }
 
-      g_free (prefix);
     }
 
     g_free (id1);

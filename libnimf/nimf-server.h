@@ -55,12 +55,11 @@ struct _NimfServer
   GHashTable      *modules;
   GHashTable      *services;
   GList           *instances;
-  GSocketListener *listener;
+  GSocketService  *service;
   GHashTable      *connections;
   gchar           *path;
   guint16          next_id;
   gboolean         active;
-  gulong           run_signal_handler_id;
   /* settings */
   GSettings       *settings;
   NimfKey        **hotkeys;

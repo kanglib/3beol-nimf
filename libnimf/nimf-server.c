@@ -564,20 +564,15 @@ nimf_server_stop (NimfServer *server)
   if (!server->active)
     return;
 
-  g_assert (server->run_signal_handler_id > 0);
-
-  g_signal_handler_disconnect (server->listener, server->run_signal_handler_id);
-  server->run_signal_handler_id = 0;
-
   GHashTableIter iter;
   gpointer       service;
 
-  g_hash_table_iter_init (&iter, server->services);
+  g_socket_service_stop (server->service);
 
+  g_hash_table_iter_init (&iter, server->services);
   while (g_hash_table_iter_next (&iter, NULL, &service))
     nimf_service_stop (NIMF_SERVICE (service));
 
-  g_socket_service_stop (G_SOCKET_SERVICE (server->listener));
   server->active = FALSE;
 }
 
@@ -588,14 +583,11 @@ nimf_server_finalize (GObject *object)
 
   NimfServer *server = NIMF_SERVER (object);
 
-  if (server->run_signal_handler_id > 0)
-  {
-    g_signal_handler_disconnect (server->listener, server->run_signal_handler_id);
-    g_unlink (server->path);
-  }
+  if (server->active)
+    nimf_server_stop (server);
 
-  if (server->listener != NULL)
-    g_object_unref (server->listener);
+  if (server->service != NULL)
+    g_object_unref (server->service);
 
   g_hash_table_unref (server->modules);
   g_hash_table_unref (server->services);
@@ -611,6 +603,7 @@ nimf_server_finalize (GObject *object)
   g_hash_table_unref (server->trigger_gsettings);
   g_hash_table_unref (server->trigger_keys);
   nimf_key_freev (server->hotkeys);
+  g_unlink (server->path);
   g_free (server->path);
 
   G_OBJECT_CLASS (nimf_server_parent_class)->finalize (object);
@@ -672,9 +665,8 @@ nimf_server_start (NimfServer *server, gboolean start_indicator)
   if ((uid = audit_getloginuid ()) == (uid_t) -1)
     uid = getuid ();
 
-  server->path = g_strdup_printf (NIMF_BASE_ADDRESS"%d", uid);
-  server->listener = G_SOCKET_LISTENER (g_socket_service_new ());
-  /* server->listener = G_SOCKET_LISTENER (g_threaded_socket_service_new (-1)); */
+  server->path = g_strdup_printf (NIMF_RUNTIME_DIR"/socket", uid);
+  server->service = g_socket_service_new ();
 
   if (g_unix_socket_address_abstract_names_supported ())
     address = g_unix_socket_address_new_with_type (server->path, -1,
@@ -685,7 +677,7 @@ nimf_server_start (NimfServer *server, gboolean start_indicator)
     return FALSE;
   }
 
-  g_socket_listener_add_address (server->listener, address,
+  g_socket_listener_add_address (G_SOCKET_LISTENER (server->service), address,
                                  G_SOCKET_TYPE_STREAM,
                                  G_SOCKET_PROTOCOL_DEFAULT,
                                  NULL, NULL, &error);
@@ -701,11 +693,10 @@ nimf_server_start (NimfServer *server, gboolean start_indicator)
 
   g_chmod (server->path, 0700);
 
-  server->run_signal_handler_id =
-    g_signal_connect (G_SOCKET_SERVICE (server->listener), "incoming",
-                      (GCallback) on_new_connection, server);
+  g_signal_connect (server->service, "incoming",
+                    G_CALLBACK (on_new_connection), server);
 
-  g_socket_service_start (G_SOCKET_SERVICE (server->listener));
+  g_socket_service_start (server->service);
 
   GHashTableIter iter;
   gpointer       service;

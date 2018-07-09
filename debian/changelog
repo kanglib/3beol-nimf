@@ -1,8 +1,37 @@
-nimf (2018.07.05-1~bionic0706~3beol) bionic; urgency=medium
+nimf (2018.07.09-1~bionic0709~3beol) bionic; urgency=medium
 
   * 3beol libhangul
 
  -- floor <createsc@gmail.com>  Sat, 02 Feb 2013 22:58:35 +0900
+
+nimf (2018.07.09) stable; urgency=medium
+
+  * Fixed programming errors
+  * Call nimf_indicator_stop() in the nimf_indicator_finalize()
+    Fixed #113
+
+ -- Hodong Kim <cogniti@gmail.com>  Mon, 09 Jul 2018 01:07:45 +0900
+
+nimf (2018.07.08) stable; urgency=medium
+
+  * Fixed a logic bug  #112
+  * Fixed segfault  #112
+
+ -- Hodong Kim <cogniti@gmail.com>  Sun, 08 Jul 2018 22:37:29 +0900
+
+nimf (2018.07.07) stable; urgency=medium
+
+  * Added simple manuals
+  * Fixed a potential error  #111
+  * Added EXTRA_CFLAGS: -D_FORTIFY_SOURCE=2  #111
+
+ -- Hodong Kim <cogniti@gmail.com>  Sat, 07 Jul 2018 22:33:34 +0900
+
+nimf (2018.07.06) stable; urgency=medium
+
+  * Use file locking to ensure single instance (resolves #110)
+
+ -- Hodong Kim <cogniti@gmail.com>  Fri, 06 Jul 2018 23:10:53 +0900
 
 nimf (2018.07.05) stable; urgency=medium
 

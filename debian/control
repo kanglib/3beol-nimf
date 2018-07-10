@@ -102,7 +102,7 @@ Description: Chinese input module for Nimf, based on chewing
  .
  This package provides a Chinese input module based on chewing.
 
-Package: nimf-libhangul
+Package: nimf-libhangul, nimf
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Suggests: fonts-noto-cjk

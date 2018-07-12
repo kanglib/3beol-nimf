@@ -70,9 +70,149 @@ typedef struct _NimfSettingsPageKey {
   GtkWidget *treeview;
 } NimfSettingsPageKey;
 
+typedef struct _KeyboardInfo {
+  guint index;
+  gchar *id;
+  gchar *name;
+} KeyboardInfo;
+
 static GtkWidget *nimf_settings_window = NULL;
 
 G_DEFINE_TYPE (NimfSettings, nimf_settings, G_TYPE_OBJECT);
+
+
+enum
+{
+  INDEX,
+  ID,
+  NAME
+};
+
+#define VIEW_WIDTH 320
+#define VIEW_HEIGHT 240
+
+#define N_ROWS 10
+#define BIG_N_ROWS N_ROWS * 5
+
+static void
+tree_selection_changed_cb (GtkTreeSelection *selection, gpointer data)
+{
+  GtkTreeIter iter;
+  GtkTreeModel *model;
+  gchar *name;
+
+  if (gtk_tree_selection_get_selected (selection, &model, &iter))
+  {
+    gtk_tree_model_get (model, &iter, NAME, &name, -1);
+
+    g_print ("You selected a book by %s\n", name);
+
+    g_free (name);
+  }
+
+  gtk_dialog_set_response_sensitive (GTK_DIALOG (data),
+                                     GTK_RESPONSE_OK, TRUE);
+}
+
+static void
+nimf_settings_layout_select_page_new (GtkButton *widget, 
+                                      KeyboardInfo *keyboard_info, 
+                                      GtkListStore *store)
+{
+  GtkWidget *dialog;
+  GtkWidget *content_area;
+  GtkDialogFlags flags;
+
+  GtkWidget *tree;
+  GtkTreeIter    iter;
+  GtkCellRenderer *renderer;
+  GtkTreeViewColumn *column;
+  GtkTreeSelection *select;
+  GtkWidget *scrolled_window;
+
+#if GTK_CHECK_VERSION (3, 12, 0)
+  flags = GTK_DIALOG_MODAL | GTK_DIALOG_USE_HEADER_BAR;
+#else
+  flags = GTK_DIALOG_MODAL;
+#endif
+
+  dialog = gtk_dialog_new_with_buttons (_("Press key combination"),
+                                        GTK_WINDOW (nimf_settings_window),
+                                        flags,
+                                        _("_Layout"), GTK_RESPONSE_HELP,
+                                        _("_OK"),     GTK_RESPONSE_OK,
+                                        _("_Cancel"), GTK_RESPONSE_CANCEL,
+                                        NULL);
+  gtk_window_set_icon_name (GTK_WINDOW (dialog), "nimf-logo");
+  gtk_widget_set_size_request (GTK_WIDGET (dialog), 400, -1);
+  gtk_window_set_resizable (GTK_WINDOW (dialog), FALSE);
+  gtk_dialog_set_response_sensitive (GTK_DIALOG (dialog),
+                                     GTK_RESPONSE_OK, FALSE);
+
+  content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+  gtk_widget_set_margin_start(GTK_WIDGET (content_area), 10);
+  gtk_widget_set_margin_end(GTK_WIDGET (content_area), 10);
+  gtk_widget_set_margin_top(GTK_WIDGET (content_area), 10);
+  gtk_widget_set_margin_bottom(GTK_WIDGET (content_area), 10);
+
+
+  tree = gtk_tree_view_new_with_model (GTK_TREE_MODEL (store));
+  
+  scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+                                  GTK_POLICY_NEVER,
+                                  GTK_POLICY_ALWAYS);
+  gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
+
+  gtk_container_add (GTK_CONTAINER (scrolled_window), tree);
+  gtk_box_pack_start (GTK_BOX (content_area), scrolled_window, TRUE, TRUE, 0);
+
+	gtk_scrolled_window_set_min_content_width (GTK_SCROLLED_WINDOW (scrolled_window), VIEW_WIDTH);
+	gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scrolled_window), VIEW_HEIGHT);
+  gtk_widget_set_size_request (tree, VIEW_WIDTH, VIEW_HEIGHT);
+
+  renderer = gtk_cell_renderer_text_new ();
+  column = gtk_tree_view_column_new_with_attributes (NULL,
+                                                    renderer,
+                                                    "text", NAME,
+                                                    NULL);
+  gtk_tree_view_append_column (GTK_TREE_VIEW (tree), column);
+
+  gtk_tree_model_iter_nth_child(GTK_TREE_MODEL (store), &iter, NULL, keyboard_info->index);
+  select = gtk_tree_view_get_selection (GTK_TREE_VIEW (tree));
+  gtk_tree_selection_select_iter(select, &iter);
+
+
+  gtk_tree_selection_set_mode (select, GTK_SELECTION_SINGLE);
+  g_signal_connect (G_OBJECT (select), "changed",
+                    G_CALLBACK (tree_selection_changed_cb),
+                    GTK_DIALOG (dialog));
+
+  gtk_widget_show_all (content_area);
+
+  switch (gtk_dialog_run (GTK_DIALOG (dialog)))
+  {
+    case GTK_RESPONSE_HELP:
+      {
+        g_print ("GTK_RESPONSE_HELP\n");
+      }
+      break;
+    case GTK_RESPONSE_OK:
+      {
+        g_print ("GTK_RESPONSE_OK\n");
+        gtk_dialog_response(GTK_DIALOG (dialog), GTK_RESPONSE_CANCEL);
+      }
+      break;
+    case GTK_RESPONSE_CANCEL:
+    default:
+      {
+        g_print ("GTK_RESPONSE_CANCEL\n");
+      }
+      break;
+  }
+
+  gtk_widget_destroy (dialog);
+}
 
 static void
 on_gsettings_changed (GSettings *settings,
@@ -142,6 +282,50 @@ on_combo_box_changed (GtkComboBox        *widget,
     g_settings_set_string (page_key->gsettings, page_key->key, id1);
 
   g_free (id2);
+}
+
+static void
+on_entry_box_changed (GtkButton        *widget,
+                     NimfSettingsPageKey *page_key)
+{
+  KeyboardInfo *keyboard_info;
+  gchar       *id1;
+
+  GtkListStore *store;
+  GtkTreeIter   iter;
+
+  keyboard_info = g_slice_new0(KeyboardInfo);
+  store = gtk_list_store_new (3, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING);
+  id1 = g_settings_get_string (page_key->gsettings, page_key->key);
+
+  g_print ("%s\n", id1);
+
+  {
+    unsigned layoutCount = hangul_keyboard_list_get_count();
+    unsigned index;
+    for (index = 0; index < layoutCount; index++)
+    {
+      const gchar *id2 = hangul_keyboard_list_get_keyboard_id(index);
+      const gchar *val = hangul_keyboard_list_get_keyboard_name(index);
+
+      gtk_list_store_append (store, &iter);
+      gtk_list_store_set (store, &iter, INDEX, index, ID, id2, NAME, val,-1);
+
+      if (g_strcmp0 (id1, id2) == 0) 
+      {
+        keyboard_info->index = index;
+        keyboard_info->id = g_strdup(id2);
+        keyboard_info->name = g_strdup(val);
+
+      }
+    }
+  }
+
+  nimf_settings_layout_select_page_new(widget, keyboard_info, store);
+  g_print ("%d, %s : %s\n", keyboard_info->index, keyboard_info->id, keyboard_info->name);
+
+  g_free (id1);
+  g_slice_free (KeyboardInfo, keyboard_info);
 }
 
 static void
@@ -301,6 +485,11 @@ nimf_settings_page_key_build_string (NimfSettingsPageKey *page_key,
   gchar        *detailed_signal;
   GtkTreeIter   iter;
 
+  GtkWidget *entry;
+  GtkWidget *button;
+  entry = gtk_entry_new();
+  button = gtk_button_new_with_label("...");
+
   store = gtk_list_store_new (2, G_TYPE_STRING, G_TYPE_STRING);
   combo = gtk_combo_box_text_new ();
   gtk_combo_box_set_model (GTK_COMBO_BOX (combo), GTK_TREE_MODEL (store));
@@ -320,23 +509,28 @@ nimf_settings_page_key_build_string (NimfSettingsPageKey *page_key,
     {
       const gchar *id2 = hangul_keyboard_list_get_keyboard_id(index);
       const gchar *val = hangul_keyboard_list_get_keyboard_name(index);
+
+      
+
       gtk_list_store_append (store, &iter);
       gtk_list_store_set (store, &iter, 0, val, 1, id2, -1);
 
       if (g_strcmp0 (id1, id2) == 0) 
       {
-        gtk_combo_box_set_active_iter (GTK_COMBO_BOX (combo), &iter);
+        gtk_entry_set_text(GTK_ENTRY (entry), val);
       }
 
     }
 
     hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 15);
     gtk_box_pack_start (GTK_BOX (hbox), page_key->label, FALSE, FALSE, 0);
-    gtk_box_pack_end   (GTK_BOX (hbox), combo, FALSE, FALSE, 0);
+    gtk_box_pack_end   (GTK_BOX (hbox), button, FALSE, TRUE, 0);
+    gtk_box_pack_end   (GTK_BOX (hbox), entry, TRUE, TRUE, 0);
+
     detailed_signal = g_strdup_printf ("changed::%s", page_key->key);
 
-    g_signal_connect (combo, "changed",
-                      G_CALLBACK (on_combo_box_changed), page_key);
+    g_signal_connect (button, "clicked",
+                      G_CALLBACK (on_entry_box_changed), page_key);
     g_signal_connect (page_key->gsettings, detailed_signal,
                       G_CALLBACK (on_gsettings_changed), combo);
 

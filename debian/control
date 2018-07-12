@@ -102,9 +102,9 @@ Description: Chinese input module for Nimf, based on chewing
  .
  This package provides a Chinese input module based on chewing.
 
-Package: nimf-libhangul, nimf
+Package: nimf-libhangul
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, nimf
 Suggests: fonts-noto-cjk
 Description: Korean input module for Nimf, based on libhangul
  Nimf is an input method framework which has a module-based client-server

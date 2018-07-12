@@ -308,6 +308,43 @@ nimf_settings_page_key_build_string (NimfSettingsPageKey *page_key,
   gtk_combo_box_set_id_column (GTK_COMBO_BOX (combo), 1);
   gtk_tree_model_get_iter_first ((GtkTreeModel *) store, &iter);
 
+  if (g_strcmp0 (page_key->key, "layout") == 0)
+  {
+    gchar *id1;
+
+    id1 = g_settings_get_string (page_key->gsettings, page_key->key);
+
+    unsigned layoutCount = hangul_keyboard_list_get_count();
+    unsigned index;
+    for (index = 0; index < layoutCount; index++)
+    {
+      const gchar *id2 = hangul_keyboard_list_get_keyboard_id(index);
+      const gchar *val = hangul_keyboard_list_get_keyboard_name(index);
+      gtk_list_store_append (store, &iter);
+      gtk_list_store_set (store, &iter, 0, val, 1, id2, -1);
+
+      if (g_strcmp0 (id1, id2) == 0) 
+      {
+        gtk_combo_box_set_active_iter (GTK_COMBO_BOX (combo), &iter);
+      }
+
+    }
+
+    hbox = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 15);
+    gtk_box_pack_start (GTK_BOX (hbox), page_key->label, FALSE, FALSE, 0);
+    gtk_box_pack_end   (GTK_BOX (hbox), combo, FALSE, FALSE, 0);
+    detailed_signal = g_strdup_printf ("changed::%s", page_key->key);
+
+    g_signal_connect (combo, "changed",
+                      G_CALLBACK (on_combo_box_changed), page_key);
+    g_signal_connect (page_key->gsettings, detailed_signal,
+                      G_CALLBACK (on_gsettings_changed), combo);
+
+    g_free (detailed_signal);
+
+    g_free (id1);
+  } 
+  else {
   if (g_strcmp0 (schema_id, "org.nimf.engines") == 0 &&
       g_strcmp0 (page_key->key, "default-engine") == 0)
   {
@@ -368,27 +405,39 @@ nimf_settings_page_key_build_string (NimfSettingsPageKey *page_key,
     g_strfreev (non_relocatable);
     g_list_free (schema_list);
     g_free (id1);
-  }
-  else if (g_strcmp0 (page_key->key, "layout") == 0)
+  } 
+  else if (g_str_has_prefix (page_key->key, "hidden-") == FALSE)
   {
     gchar *id1;
+    GList *list;
 
     id1 = g_settings_get_string (page_key->gsettings, page_key->key);
 
-    unsigned layoutCount = hangul_keyboard_list_get_count();
-    unsigned index;
-    for (index = 0; index < layoutCount; index++)
+    for (list = key_list; list != NULL; list = list->next)
     {
-      const gchar *id2 = hangul_keyboard_list_get_keyboard_id(index);
-      const gchar *val = hangul_keyboard_list_get_keyboard_name(index);
-      gtk_list_store_append (store, &iter);
-      gtk_list_store_set (store, &iter, 0, val, 1, id2, -1);
+      gchar *key2;
+      gchar *prefix;
 
-      if (g_strcmp0 (id1, id2) == 0) 
+      key2 = list->data;
+      prefix = g_strdup_printf ("hidden-%s-", page_key->key);
+
+      if (g_str_has_prefix (key2, prefix))
       {
-        gtk_combo_box_set_active_iter (GTK_COMBO_BOX (combo), &iter);
+        gchar *val;
+        const gchar *id2 = key2 + strlen (prefix);
+
+        val = g_settings_get_string (page_key->gsettings, key2);
+        gtk_list_store_append (store, &iter);
+        gtk_list_store_set (store, &iter, 0, val,
+                                          1, id2, -1);
+
+        if (g_strcmp0 (id1, id2) == 0)
+          gtk_combo_box_set_active_iter (GTK_COMBO_BOX (combo), &iter);
+
+        g_free (val);
       }
 
+      g_free (prefix);
     }
 
     g_free (id1);
@@ -405,6 +454,7 @@ nimf_settings_page_key_build_string (NimfSettingsPageKey *page_key,
                     G_CALLBACK (on_gsettings_changed), combo);
 
   g_free (detailed_signal);
+  }
 
   return hbox;
 }

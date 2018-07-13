@@ -24,7 +24,8 @@ Build-Depends: debhelper (>= 9),
                libxkbcommon-dev (>= 0.5.0),
                libwayland-dev,
                wayland-protocols,
-               libaudit-dev
+               libaudit-dev,
+               libgdk-pixbuf2.0-dev,
 Standards-Version: 3.9.8
 Homepage: https://gitlab.com/hodong/nimf
 

@@ -20,6 +20,7 @@ nimf_LDADD   = $(top_builddir)/libnimf/libnimf.la
 
 nimf_settings_SOURCES = nimf-settings.c
 nimf_settings_CFLAGS = \
+	-DLIBHANGUL_DATA_DIR=\"$(datadir)/libhangul\" \
 	$(NIMF_LIBHANGUL_DEPS_CFLAGS) \
 	$(NIMF_SETTINGS_DEPS_CFLAGS) \
 	$(AM_CFLAGS)

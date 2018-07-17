@@ -78,6 +78,9 @@ typedef struct _KeyboardInfo {
   gchar *id;
   gchar *name;
   NimfSettingsPageKey *page_key;
+  gchar **initial_keys;
+  guint initial_keys_length;
+  GtkWidget *dialog;
 } KeyboardInfo;
 
 static GtkWidget *nimf_settings_window = NULL;
@@ -97,6 +100,11 @@ enum
 
 #define N_ROWS 10
 #define BIG_N_ROWS N_ROWS * 5
+
+void 
+listbox_activated_row (GtkListBox    *box,
+               GtkListBoxRow *row,
+               gpointer       user_data);
 
 void
 layout_view_clicked(GtkDialog *dialog, KeyboardInfo *keyboard_info)
@@ -255,6 +263,8 @@ void
 keyboard_info_free (KeyboardInfo *keyboard_info)
 {
   keyboard_info->page_key = NULL;
+  keyboard_info->dialog = NULL;
+  g_strfreev (keyboard_info->initial_keys);
   g_free (keyboard_info->id);
   g_free (keyboard_info->name);
   g_slice_free (KeyboardInfo, keyboard_info);
@@ -299,7 +309,7 @@ on_dialog_response (GtkDialog *dialog,
 }
 
 void 
-listbox_changed_dialog (GtkListBox    *box,
+listbox_selected_dialog (GtkListBox    *box,
                GtkListBoxRow *row,
                gpointer       user_data)
 {
@@ -308,10 +318,15 @@ listbox_changed_dialog (GtkListBox    *box,
 }
 
 void 
-listbox_changed_row (GtkListBox    *box,
+listbox_selected_row (GtkListBox    *box,
                GtkListBoxRow *row,
                gpointer       user_data)
 {
+  if (strcmp (gtk_widget_get_name (GTK_WIDGET (row)), "more") == 0)
+  {
+    return;
+  }
+
   KeyboardInfo *keyboard_info = (KeyboardInfo *) user_data;
 
   GtkWidget *child;
@@ -324,6 +339,28 @@ listbox_changed_row (GtkListBox    *box,
 
   keyboard_info->id = g_strdup(id);
   keyboard_info->name = g_strdup(name);
+}
+
+GtkWidget *
+more_row_new (void)
+{
+  GtkWidget *row = gtk_list_box_row_new ();
+  GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
+
+  gtk_container_add (GTK_CONTAINER (row), GTK_WIDGET (box));
+  gtk_widget_set_tooltip_markup ( GTK_WIDGET (row), _("More..."));
+  gtk_widget_set_name (GTK_WIDGET (row), "more");
+
+  GtkWidget *arrow = gtk_image_new_from_icon_name ("view-more-symbolic", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_margin_start (GTK_WIDGET (arrow), 20);
+  gtk_widget_set_margin_end (GTK_WIDGET (arrow), 20);
+  gtk_widget_set_margin_top (GTK_WIDGET (arrow), 6);
+  gtk_widget_set_margin_bottom (GTK_WIDGET (arrow), 6);
+  gtk_widget_set_halign (GTK_WIDGET (arrow), GTK_ALIGN_CENTER);
+  gtk_widget_set_valign (GTK_WIDGET (arrow), GTK_ALIGN_CENTER);
+  gtk_box_pack_start (GTK_BOX (box), GTK_WIDGET (arrow), TRUE, TRUE, 0);
+
+  return row;
 }
 
 void
@@ -341,6 +378,155 @@ add_list_item (GtkListBox *listbox, const gchar *text, const gchar *tooltip)
 
     g_free(id);
     g_free(name);
+}
+
+void
+build_content_area (KeyboardInfo *keyboard_info, gboolean showing_extra)
+{
+  gchar       *id1;
+
+  id1 = g_settings_get_string (
+          keyboard_info->page_key->gsettings, 
+          keyboard_info->page_key->key);
+
+
+  GtkWidget *dialog;
+  GtkDialogFlags flags;
+  GtkWidget *content_area;
+
+  GtkWidget *scrolled_window;
+  GtkListBox *list_box;
+  GtkListBoxRow *list_box_row;
+
+
+#if GTK_CHECK_VERSION (3, 12, 0)
+  flags = GTK_DIALOG_MODAL | GTK_DIALOG_USE_HEADER_BAR;
+#else
+  flags = GTK_DIALOG_MODAL;
+#endif
+
+  dialog = gtk_dialog_new_with_buttons (
+                      _("Select a Keyboard Layout"),
+                      GTK_WINDOW (nimf_settings_window),
+                      flags,
+                      _("_Layout"), GTK_RESPONSE_HELP,
+                      _("_OK"), GTK_RESPONSE_OK,
+                      _("_Cancel"), GTK_RESPONSE_CANCEL,
+                      NULL);
+
+  gtk_window_set_icon_name (GTK_WINDOW (dialog), "nimf-logo");
+  gtk_widget_set_size_request (GTK_WIDGET (dialog), 420, -1);
+  gtk_window_set_resizable (GTK_WINDOW (dialog), FALSE);
+  gtk_dialog_set_response_sensitive (GTK_DIALOG (dialog),
+                                     GTK_RESPONSE_OK, FALSE);
+
+  keyboard_info->dialog = GTK_WIDGET (dialog);
+
+  list_box = GTK_LIST_BOX (gtk_list_box_new ());
+  gtk_list_box_set_selection_mode (GTK_LIST_BOX (list_box), GTK_SELECTION_BROWSE);
+
+  unsigned layoutCount = hangul_keyboard_list_get_count();
+  unsigned index;
+  for (index = 0; index < layoutCount; index++)
+  {
+    const gchar *id2 = hangul_keyboard_list_get_keyboard_id(index);
+    const gchar *name = hangul_keyboard_list_get_keyboard_name(index);
+
+
+    if (showing_extra == FALSE)
+    {
+      int i;
+      for(i = 0; i < keyboard_info->initial_keys_length; i++)
+      {
+        gchar *key = (gchar *)keyboard_info->initial_keys[i];
+        if(strcmp(key, id2) == 0)
+        {
+          add_list_item (list_box, name, id2);
+          list_box_row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list_box), index);
+
+          if (g_strcmp0 (id1, id2) == 0) 
+          {
+            gtk_list_box_select_row(GTK_LIST_BOX (list_box), list_box_row);
+            keyboard_info->id = g_strdup(id2);
+            keyboard_info->name = g_strdup(name);
+          }
+        }
+      }
+    }
+    else 
+    {
+      add_list_item (list_box, name, id2);
+      list_box_row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list_box), index);
+
+      if (g_strcmp0 (id1, id2) == 0) 
+      {
+        gtk_list_box_select_row(GTK_LIST_BOX (list_box), list_box_row);
+        keyboard_info->id = g_strdup(id2);
+        keyboard_info->name = g_strdup(name);
+      }
+    }
+
+  }
+
+  if (showing_extra == FALSE)
+  {
+    gtk_list_box_insert (GTK_LIST_BOX (list_box), GTK_WIDGET (more_row_new()), -1);
+  }
+  
+
+  g_signal_connect (GTK_LIST_BOX (list_box), "row-selected",
+          G_CALLBACK (listbox_selected_dialog), dialog);
+  g_signal_connect (GTK_LIST_BOX (list_box), "row-selected",
+          G_CALLBACK (listbox_selected_row), keyboard_info);
+  g_signal_connect (GTK_LIST_BOX (list_box), "row-activated",
+          G_CALLBACK (listbox_activated_row), keyboard_info);
+
+  g_signal_connect (GTK_DIALOG (dialog), "response", 
+                    G_CALLBACK (on_dialog_response), keyboard_info);
+
+  scrolled_window = gtk_scrolled_window_new (NULL, NULL);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
+                                  GTK_POLICY_NEVER,
+                                  GTK_POLICY_ALWAYS);
+  gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
+
+  gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET(list_box));
+  gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 10);
+
+	gtk_scrolled_window_set_min_content_width (GTK_SCROLLED_WINDOW (scrolled_window), VIEW_WIDTH);
+	gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scrolled_window), VIEW_HEIGHT);
+
+
+  content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
+  gtk_box_pack_start (GTK_BOX (content_area), scrolled_window, TRUE, TRUE, 0);
+
+  gtk_widget_show_all (dialog);
+
+  g_free (id1);
+}
+
+void 
+listbox_activated_row (GtkListBox    *box,
+               GtkListBoxRow *row,
+               gpointer       user_data)
+{
+  GtkWidget *dialog;
+
+  if (strcmp (gtk_widget_get_name (GTK_WIDGET (row)), "more") != 0)
+  {
+    return;
+  }
+
+  KeyboardInfo *keyboard_info = (KeyboardInfo *) user_data;
+
+  dialog = keyboard_info->dialog;
+
+  if (dialog != NULL && GTK_IS_WIDGET (dialog))
+  {
+    keyboard_info->dialog = NULL;
+    gtk_widget_destroy (GTK_WIDGET (dialog));
+    build_content_area (keyboard_info, TRUE);
+  }
 }
 
 static void
@@ -435,95 +621,18 @@ on_combo_box_changed (GtkComboBox        *widget,
   g_free (id2);
 }
 
+
 static void
 on_entry_box_changed (GtkButton        *widget,
                      NimfSettingsPageKey *page_key)
 {
-  gchar       *id1;
-
-  id1 = g_settings_get_string (page_key->gsettings, page_key->key);
-
-  GtkWidget *dialog;
-  GtkWidget *content_area;
-  GtkDialogFlags flags;
-
-  GtkWidget *scrolled_window;
-  GtkListBox *list_box;
-  GtkListBoxRow *list_box_row;
-
   KeyboardInfo *keyboard_info = g_slice_new0(KeyboardInfo);
-
-#if GTK_CHECK_VERSION (3, 12, 0)
-  flags = GTK_DIALOG_MODAL | GTK_DIALOG_USE_HEADER_BAR;
-#else
-  flags = GTK_DIALOG_MODAL;
-#endif
-
-  dialog = gtk_dialog_new_with_buttons (
-                      _("Select a Keyboard Layout"),
-                      GTK_WINDOW (nimf_settings_window),
-                      flags,
-                      _("_Layout"), GTK_RESPONSE_HELP,
-                      _("_OK"), GTK_RESPONSE_OK,
-                      _("_Cancel"), GTK_RESPONSE_CANCEL,
-                      NULL);
-
-  gtk_window_set_icon_name (GTK_WINDOW (dialog), "nimf-logo");
-  gtk_widget_set_size_request (GTK_WIDGET (dialog), 420, -1);
-  gtk_window_set_resizable (GTK_WINDOW (dialog), FALSE);
-  gtk_dialog_set_response_sensitive (GTK_DIALOG (dialog),
-                                     GTK_RESPONSE_OK, FALSE);
-
-  content_area = gtk_dialog_get_content_area (GTK_DIALOG (dialog));
-
-
-  list_box = GTK_LIST_BOX (gtk_list_box_new ());
-  gtk_list_box_set_selection_mode (GTK_LIST_BOX (list_box), GTK_SELECTION_BROWSE);
-
-  unsigned layoutCount = hangul_keyboard_list_get_count();
-  unsigned index;
-  for (index = 0; index < layoutCount; index++)
-  {
-    const gchar *id2 = hangul_keyboard_list_get_keyboard_id(index);
-    const gchar *name = hangul_keyboard_list_get_keyboard_name(index);
-
-    add_list_item (list_box, name, id2);
-    list_box_row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list_box), index);
-
-    if (g_strcmp0 (id1, id2) == 0) 
-    {
-      gtk_list_box_select_row(GTK_LIST_BOX (list_box), list_box_row);
-      keyboard_info->id = g_strdup(id2);
-      keyboard_info->name = g_strdup(name);
-    }
-  }
   keyboard_info->page_key = page_key;
+  
+  keyboard_info->initial_keys_length = libhangul_get_init_keyboard_ids_length ();
+  keyboard_info->initial_keys = g_strdupv ((gchar **)libhangul_get_init_keyboard_ids ());
 
-  g_signal_connect (GTK_LIST_BOX (list_box), "row-selected",
-          G_CALLBACK (listbox_changed_dialog), dialog);
-  g_signal_connect (GTK_LIST_BOX (list_box), "row-selected",
-          G_CALLBACK (listbox_changed_row), keyboard_info);
-
-  g_signal_connect (GTK_DIALOG (dialog), "response", 
-                    G_CALLBACK (on_dialog_response), keyboard_info);
-
-  scrolled_window = gtk_scrolled_window_new (NULL, NULL);
-  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolled_window),
-                                  GTK_POLICY_NEVER,
-                                  GTK_POLICY_ALWAYS);
-  gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW (scrolled_window), GTK_SHADOW_IN);
-
-  gtk_container_add (GTK_CONTAINER (scrolled_window), GTK_WIDGET(list_box));
-  gtk_container_set_border_width (GTK_CONTAINER (scrolled_window), 10);
-
-  gtk_box_pack_start (GTK_BOX (content_area), scrolled_window, TRUE, TRUE, 0);
-
-	gtk_scrolled_window_set_min_content_width (GTK_SCROLLED_WINDOW (scrolled_window), VIEW_WIDTH);
-	gtk_scrolled_window_set_min_content_height (GTK_SCROLLED_WINDOW (scrolled_window), VIEW_HEIGHT);
-
-  gtk_widget_show_all (dialog);
-
-  g_free (id1);
+  build_content_area (keyboard_info, FALSE);
 }
 
 static void

@@ -75,6 +75,7 @@ typedef struct _NimfSettingsPageKey {
 } NimfSettingsPageKey;
 
 typedef struct _KeyboardInfo {
+  guint index;
   gchar *id;
   gchar *name;
   NimfSettingsPageKey *page_key;
@@ -424,9 +425,10 @@ build_content_area (KeyboardInfo *keyboard_info, gboolean showing_extra)
 
   list_box = GTK_LIST_BOX (gtk_list_box_new ());
   gtk_list_box_set_selection_mode (GTK_LIST_BOX (list_box), GTK_SELECTION_BROWSE);
-
-  unsigned layoutCount = hangul_keyboard_list_get_count();
-  unsigned index;
+  
+  guint layoutCount = hangul_keyboard_list_get_count();
+  guint index;
+  guint index_init = 0;
   for (index = 0; index < layoutCount; index++)
   {
     const gchar *id2 = hangul_keyboard_list_get_keyboard_id(index);
@@ -442,14 +444,16 @@ build_content_area (KeyboardInfo *keyboard_info, gboolean showing_extra)
         if(strcmp(key, id2) == 0)
         {
           add_list_item (list_box, name, id2);
-          list_box_row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list_box), index);
+          list_box_row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list_box), index_init);
 
           if (g_strcmp0 (id1, id2) == 0) 
           {
             gtk_list_box_select_row(GTK_LIST_BOX (list_box), list_box_row);
             keyboard_info->id = g_strdup(id2);
             keyboard_info->name = g_strdup(name);
+            keyboard_info->index = index;
           }
+          index_init++;
         }
       }
     }
@@ -463,6 +467,7 @@ build_content_area (KeyboardInfo *keyboard_info, gboolean showing_extra)
         gtk_list_box_select_row(GTK_LIST_BOX (list_box), list_box_row);
         keyboard_info->id = g_strdup(id2);
         keyboard_info->name = g_strdup(name);
+        keyboard_info->index = index;
       }
     }
 

@@ -323,11 +323,6 @@ listbox_selected_row (GtkListBox    *box,
                GtkListBoxRow *row,
                gpointer       user_data)
 {
-  if (strcmp (gtk_widget_get_name (GTK_WIDGET (row)), "more") == 0)
-  {
-    return;
-  }
-
   KeyboardInfo *keyboard_info = (KeyboardInfo *) user_data;
 
   GtkWidget *child;
@@ -335,6 +330,11 @@ listbox_selected_row (GtkListBox    *box,
   const gchar *name = NULL;
 
   child = gtk_bin_get_child (GTK_BIN (row));
+  if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (child)), "more") == 0)
+  {
+    return;
+  }
+
   id = gtk_widget_get_tooltip_markup (GTK_WIDGET (child));
   name = gtk_label_get_text(GTK_LABEL (child));
 
@@ -345,10 +345,8 @@ listbox_selected_row (GtkListBox    *box,
 GtkWidget *
 more_row_new (void)
 {
-  GtkWidget *row = gtk_list_box_row_new ();
-  GtkWidget *box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
+  GtkWidget *row = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 5);
 
-  gtk_container_add (GTK_CONTAINER (row), GTK_WIDGET (box));
   gtk_widget_set_tooltip_markup ( GTK_WIDGET (row), _("More..."));
   gtk_widget_set_name (GTK_WIDGET (row), "more");
 
@@ -359,13 +357,14 @@ more_row_new (void)
   gtk_widget_set_margin_bottom (GTK_WIDGET (arrow), 6);
   gtk_widget_set_halign (GTK_WIDGET (arrow), GTK_ALIGN_CENTER);
   gtk_widget_set_valign (GTK_WIDGET (arrow), GTK_ALIGN_CENTER);
-  gtk_box_pack_start (GTK_BOX (box), GTK_WIDGET (arrow), TRUE, TRUE, 0);
+
+  gtk_box_pack_start (GTK_BOX (row), GTK_WIDGET (arrow), TRUE, TRUE, 0);
 
   return row;
 }
 
 void
-add_list_item (GtkListBox *listbox, const gchar *text, const gchar *tooltip)
+add_list_item (GtkListBox *listbox, const gchar *text, const gchar *tooltip, bool first)
 {
     GtkWidget     *item;
     gchar *name = g_strdup(text);
@@ -373,7 +372,16 @@ add_list_item (GtkListBox *listbox, const gchar *text, const gchar *tooltip)
 
     item = gtk_label_new(name);
     gtk_widget_set_tooltip_markup(item, id);
-    gtk_container_add (GTK_CONTAINER (listbox), item);
+    //gtk_container_add (GTK_CONTAINER (listbox), item);
+
+    if (first == TRUE)
+    {
+      gtk_list_box_insert (GTK_LIST_BOX (listbox), GTK_WIDGET (item), 0);
+    }
+    else 
+    {
+      gtk_list_box_insert (GTK_LIST_BOX (listbox), GTK_WIDGET (item), -1);
+    }
 
     gtk_widget_show (item);
 
@@ -428,12 +436,20 @@ build_content_area (KeyboardInfo *keyboard_info, gboolean showing_extra)
   
   guint layoutCount = hangul_keyboard_list_get_count();
   guint index;
-  guint index_init = 0;
   for (index = 0; index < layoutCount; index++)
   {
     const gchar *id2 = hangul_keyboard_list_get_keyboard_id(index);
     const gchar *name = hangul_keyboard_list_get_keyboard_name(index);
 
+    if (g_strcmp0 (id1, id2) == 0) 
+    {
+      add_list_item (list_box, name, id2, TRUE);
+      list_box_row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list_box), 0);
+      gtk_list_box_select_row(GTK_LIST_BOX (list_box), list_box_row);
+      keyboard_info->id = g_strdup(id2);
+      keyboard_info->name = g_strdup(name);
+      keyboard_info->index = index;
+    }
 
     if (showing_extra == FALSE)
     {
@@ -441,36 +457,19 @@ build_content_area (KeyboardInfo *keyboard_info, gboolean showing_extra)
       for(i = 0; i < keyboard_info->initial_keys_length; i++)
       {
         gchar *key = (gchar *)keyboard_info->initial_keys[i];
-        if(strcmp(key, id2) == 0)
+        if(g_strcmp0(key, id2) == 0 && g_strcmp0 (id1, id2) != 0)
         {
-          add_list_item (list_box, name, id2);
-          list_box_row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list_box), index_init);
-
-          if (g_strcmp0 (id1, id2) == 0) 
-          {
-            gtk_list_box_select_row(GTK_LIST_BOX (list_box), list_box_row);
-            keyboard_info->id = g_strdup(id2);
-            keyboard_info->name = g_strdup(name);
-            keyboard_info->index = index;
-          }
-          index_init++;
+          add_list_item (list_box, name, id2, FALSE);
         }
       }
     }
     else 
     {
-      add_list_item (list_box, name, id2);
-      list_box_row = gtk_list_box_get_row_at_index(GTK_LIST_BOX(list_box), index);
-
-      if (g_strcmp0 (id1, id2) == 0) 
+      if (g_strcmp0 (id1, id2) != 0)
       {
-        gtk_list_box_select_row(GTK_LIST_BOX (list_box), list_box_row);
-        keyboard_info->id = g_strdup(id2);
-        keyboard_info->name = g_strdup(name);
-        keyboard_info->index = index;
+        add_list_item (list_box, name, id2, FALSE);
       }
     }
-
   }
 
   if (showing_extra == FALSE)
@@ -516,8 +515,10 @@ listbox_activated_row (GtkListBox    *box,
                gpointer       user_data)
 {
   GtkWidget *dialog;
+  GtkWidget *child;
 
-  if (strcmp (gtk_widget_get_name (GTK_WIDGET (row)), "more") != 0)
+  child = gtk_bin_get_child (GTK_BIN (row));
+  if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (child)), "more") != 0)
   {
     return;
   }

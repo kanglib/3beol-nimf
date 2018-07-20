@@ -1,4 +1,10 @@
-nimf (2018.07.15-1.0~cosmic0717~3beol) cosmic; urgency=medium
+nimf (2018.07.17-1.0~cosmic0720~3beol) cosmic; urgency=medium
+
+  * 3beol libhangul
+
+ -- floor <createsc@gmail.com>  Sat, 02 Feb 2013 22:58:35 +0900
+
+nimf (2018.07.15-1.0~bionic0717~3beol) bionic; urgency=medium
 
   * 3beol libhangul
 

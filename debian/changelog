@@ -1,6 +1,7 @@
-nimf (2018.07.17-1.0~cosmic0720~3beol) cosmic; urgency=medium
+nimf (2018.07.19-1.0~cosmic0720~3beol) cosmic; urgency=medium
 
   * 3beol libhangul
+  * Fixed segmentation fault (closes #115 #113)
 
  -- floor <createsc@gmail.com>  Sat, 02 Feb 2013 22:58:35 +0900
 

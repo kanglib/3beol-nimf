@@ -450,22 +450,21 @@ build_content_area (KeyboardInfo *keyboard_info, gboolean showing_extra)
       keyboard_info->name = g_strdup(name);
       keyboard_info->index = index;
     }
-
-    if (showing_extra == FALSE)
+    else
     {
-      int i;
-      for(i = 0; i < keyboard_info->initial_keys_length; i++)
+      if (showing_extra == FALSE)
       {
-        gchar *key = (gchar *)keyboard_info->initial_keys[i];
-        if(g_strcmp0(key, id2) == 0 && g_strcmp0 (id1, id2) != 0)
+        int i;
+        for(i = 0; i < keyboard_info->initial_keys_length; i++)
         {
-          add_list_item (list_box, name, id2, FALSE);
+          gchar *key = (gchar *)keyboard_info->initial_keys[i];
+          if(g_strcmp0(key, id2) == 0)
+          {
+            add_list_item (list_box, name, id2, FALSE);
+          }
         }
       }
-    }
-    else 
-    {
-      if (g_strcmp0 (id1, id2) != 0)
+      else 
       {
         add_list_item (list_box, name, id2, FALSE);
       }

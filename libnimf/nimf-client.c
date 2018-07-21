@@ -37,6 +37,7 @@ static GSource    *nimf_client_default_source = NULL;
 static GHashTable *nimf_client_table          = NULL;
 NimfResult        *nimf_client_result         = NULL;
 GSocket           *nimf_client_socket         = NULL;
+gchar             *nimf_client_socket_path    = NULL;
 
 G_DEFINE_ABSTRACT_TYPE (NimfClient, nimf_client, G_TYPE_OBJECT);
 
@@ -208,35 +209,21 @@ nimf_client_create_context (NimfClient *client)
 static void
 nimf_client_connect (NimfClient *client)
 {
-  g_debug (G_STRLOC ": %s", G_STRFUNC);
-
   GMutex mutex;
 
   g_mutex_init (&mutex);
   g_mutex_lock (&mutex);
 
-  gchar   *path;
-  GStatBuf info;
-  gint     retval;
-
-  path   = g_strdup_printf (NIMF_RUNTIME_DIR"/socket", client->uid);
-  retval = g_stat (path, &info);
-
-  if (retval == 0 && client->uid != info.st_uid)
-  {
-    g_critical (G_STRLOC ": %s: Can't authenticate", G_STRFUNC);
-    goto FINALLY;
-  }
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   if (!nimf_client_is_connected ())
   {
     GSocketAddress *address;
+    GStatBuf        info;
     gint            retry_limit = 4;
     gint            retry_count = 0;
     GError         *error = NULL;
 
-    address = g_unix_socket_address_new_with_type (path, -1,
-                                                   G_UNIX_SOCKET_ADDRESS_PATH);
     if (nimf_client_socket)
     {
       if (nimf_client_socket_source)
@@ -261,19 +248,34 @@ nimf_client_connect (NimfClient *client)
                                        G_SOCKET_TYPE_STREAM,
                                        G_SOCKET_PROTOCOL_DEFAULT,
                                        NULL);
+    address = g_unix_socket_address_new_with_type (nimf_client_socket_path, -1,
+                                                   G_UNIX_SOCKET_ADDRESS_PATH);
 
     for (retry_count = 0; retry_count < retry_limit; retry_count++)
     {
       g_clear_error (&error);
 
-      if (g_socket_connect (nimf_client_socket, address, NULL, &error))
-        break;
-
-      if (!g_spawn_command_line_sync ("nimf --start-indicator",
-                                      NULL, NULL, NULL, NULL))
+      if (g_stat (nimf_client_socket_path, &info) == 0)
       {
-        g_critical ("Couldn't execute 'nimf --start-indicator'");
-        break;
+        if (client->uid == info.st_uid)
+        {
+          if (g_socket_connect (nimf_client_socket, address, NULL, &error))
+            break;
+        }
+        else
+        {
+          g_critical (G_STRLOC ": %s: Can't authenticate", G_STRFUNC);
+          break;
+        }
+      }
+      else
+      {
+        if (!g_spawn_command_line_sync ("nimf --start-indicator",
+                                        NULL, NULL, NULL, NULL))
+        {
+          g_critical ("Couldn't execute 'nimf --start-indicator'");
+          break;
+        }
       }
 
       g_usleep (G_USEC_PER_SEC);
@@ -299,7 +301,7 @@ nimf_client_connect (NimfClient *client)
     else
     {
       if (g_error_matches (error, G_IO_ERROR, G_IO_ERROR_NOT_FOUND))
-        g_critical (G_STRLOC ": %s: Socket file is not found", G_STRFUNC);
+        g_critical (G_STRLOC ": %s: Socket file is not found.", G_STRFUNC);
       else
         g_critical (G_STRLOC ": %s: %s", G_STRFUNC, error->message);
 
@@ -307,9 +309,6 @@ nimf_client_connect (NimfClient *client)
     }
   }
 
-  FINALLY:
-
-  g_free (path);
   g_mutex_unlock (&mutex);
 }
 
@@ -324,12 +323,14 @@ on_changed (GFileMonitor     *monitor,
 
   NimfClient *client = user_data;
 
-  if ((event_type == G_FILE_MONITOR_EVENT_CREATED) &&
-      !nimf_client_is_connected ())
-    nimf_client_connect (client);
+  if (event_type == G_FILE_MONITOR_EVENT_CREATED)
+  {
+    if (!nimf_client_is_connected ())
+      nimf_client_connect (client);
 
-  if (nimf_client_is_connected () && !client->created)
-    nimf_client_create_context (client);
+    if (nimf_client_is_connected () && !client->created)
+      nimf_client_create_context (client);
+  }
 }
 
 static void
@@ -339,10 +340,12 @@ nimf_client_init (NimfClient *client)
 
   static guint16 next_id = 0;
   guint16 id;
-  gchar  *path;
 
   if ((client->uid = audit_getloginuid ()) == (uid_t) -1)
     client->uid = getuid ();
+
+  if (!nimf_client_socket_path)
+    nimf_client_socket_path = g_strdup_printf (NIMF_RUNTIME_DIR"/socket", client->uid);
 
   if (nimf_client_context == NULL)
     nimf_client_context = g_main_context_new ();
@@ -362,15 +365,12 @@ nimf_client_init (NimfClient *client)
   {
     GFile *file;
 
-    path = g_strdup_printf (NIMF_RUNTIME_DIR"/socket", client->uid);
-    file = g_file_new_for_path (path);
-
+    file = g_file_new_for_path (nimf_client_socket_path);
     client->monitor = g_file_monitor_file (file, G_FILE_MONITOR_NONE, NULL, NULL);
     g_file_monitor_set_rate_limit (client->monitor, G_PRIORITY_LOW);
     g_signal_connect (client->monitor, "changed", G_CALLBACK (on_changed), client);
 
     g_object_unref (file);
-    g_free (path);
   }
 
   do {
@@ -431,12 +431,15 @@ nimf_client_finalize (GObject *object)
     if (nimf_client_default_source)
       g_source_unref     (nimf_client_default_source);
 
+    g_free (nimf_client_socket_path);
+
     nimf_client_socket         = NULL;
     nimf_client_socket_source  = NULL;
     nimf_client_default_source = NULL;
     nimf_client_context        = NULL;
     nimf_client_result         = NULL;
     nimf_client_table          = NULL;
+    nimf_client_socket_path    = NULL;
   }
 
   G_OBJECT_CLASS (nimf_client_parent_class)->finalize (object);

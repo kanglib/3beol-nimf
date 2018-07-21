@@ -1,3 +1,11 @@
+nimf (2018.07.20-1.0~cosmic0721~3beol) cosmic; urgency=medium
+
+  * 3beol libhangul
+  * Added a n-input-mode option (resolves #81 #85 #103)
+  * Fixed authentication logic
+
+ -- floor <createsc@gmail.com>  Sat, 02 Feb 2013 22:58:35 +0900
+
 nimf (2018.07.19-1.0~cosmic0720~3beol) cosmic; urgency=medium
 
   * 3beol libhangul

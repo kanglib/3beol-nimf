@@ -102,9 +102,13 @@ enum
 #define N_ROWS 10
 #define BIG_N_ROWS N_ROWS * 5
 
-void 
+gboolean 
 listbox_activated_row (GtkListBox    *box,
                GtkListBoxRow *row,
+               gpointer       user_data);
+gboolean 
+listbox_key_pressed_row (GtkListBox    *box,
+               GdkEvent  *event,
                gpointer       user_data);
 
 void
@@ -271,7 +275,7 @@ keyboard_info_free (KeyboardInfo *keyboard_info)
   g_slice_free (KeyboardInfo, keyboard_info);
 }
 
-void 
+gboolean 
 on_dialog_response (GtkDialog *dialog,
                     gint       response_id,
                     gpointer   user_data)
@@ -306,19 +310,20 @@ on_dialog_response (GtkDialog *dialog,
       }
       break;
   }
-  
+  return TRUE;
 }
 
-void 
+gboolean 
 listbox_selected_dialog (GtkListBox    *box,
                GtkListBoxRow *row,
                gpointer       user_data)
 {
   gtk_dialog_set_response_sensitive (GTK_DIALOG (user_data),
                                     GTK_RESPONSE_OK, TRUE);
+  return TRUE;
 }
 
-void 
+gboolean 
 listbox_selected_row (GtkListBox    *box,
                GtkListBoxRow *row,
                gpointer       user_data)
@@ -332,7 +337,7 @@ listbox_selected_row (GtkListBox    *box,
   child = gtk_bin_get_child (GTK_BIN (row));
   if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (child)), "more") == 0)
   {
-    return;
+    return FALSE;
   }
 
   id = gtk_widget_get_tooltip_markup (GTK_WIDGET (child));
@@ -340,6 +345,8 @@ listbox_selected_row (GtkListBox    *box,
 
   keyboard_info->id = g_strdup(id);
   keyboard_info->name = g_strdup(name);
+
+  return TRUE;
 }
 
 GtkWidget *
@@ -483,6 +490,8 @@ build_content_area (KeyboardInfo *keyboard_info, gboolean showing_extra)
           G_CALLBACK (listbox_selected_row), keyboard_info);
   g_signal_connect (GTK_LIST_BOX (list_box), "row-activated",
           G_CALLBACK (listbox_activated_row), keyboard_info);
+  g_signal_connect (GTK_LIST_BOX (list_box), "key-press-event",
+          G_CALLBACK (listbox_key_pressed_row), keyboard_info);
 
   g_signal_connect (GTK_DIALOG (dialog), "response", 
                     G_CALLBACK (on_dialog_response), keyboard_info);
@@ -508,7 +517,7 @@ build_content_area (KeyboardInfo *keyboard_info, gboolean showing_extra)
   g_free (id1);
 }
 
-void 
+gboolean 
 listbox_activated_row (GtkListBox    *box,
                GtkListBoxRow *row,
                gpointer       user_data)
@@ -516,22 +525,57 @@ listbox_activated_row (GtkListBox    *box,
   GtkWidget *dialog;
   GtkWidget *child;
 
-  child = gtk_bin_get_child (GTK_BIN (row));
-  if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (child)), "more") != 0)
-  {
-    return;
-  }
-
   KeyboardInfo *keyboard_info = (KeyboardInfo *) user_data;
 
   dialog = keyboard_info->dialog;
 
-  if (dialog != NULL && GTK_IS_WIDGET (dialog))
+  child = gtk_bin_get_child (GTK_BIN (row));
+  if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (child)), "more") == 0)
   {
-    keyboard_info->dialog = NULL;
-    gtk_widget_destroy (GTK_WIDGET (dialog));
-    build_content_area (keyboard_info, TRUE);
+    if (dialog != NULL && GTK_IS_WIDGET (dialog))
+    {
+      keyboard_info->dialog = NULL;
+      gtk_widget_destroy (GTK_WIDGET (dialog));
+      build_content_area (keyboard_info, TRUE);
+    }
+    return TRUE;
   }
+
+  return FALSE;
+}
+
+gboolean 
+listbox_key_pressed_row (GtkListBox    *box,
+               GdkEvent  *event,
+               gpointer       user_data)
+{
+  GtkWidget *dialog;
+  GtkListBoxRow *row;
+  GtkWidget *child;
+  GdkEventKey *event_key = (GdkEventKey *) event;
+
+  if (event_key->type != GDK_KEY_PRESS)
+  {
+    return FALSE;
+  }
+
+  if (event_key->hardware_keycode != 36 && // enter
+      event_key->hardware_keycode != 65)  // space
+  {
+    return FALSE;
+  }
+
+  KeyboardInfo *keyboard_info = (KeyboardInfo *) user_data;
+  dialog = keyboard_info->dialog;
+  row = gtk_list_box_get_selected_row (GTK_LIST_BOX (box));
+  child = gtk_bin_get_child (GTK_BIN (row));
+  if (g_strcmp0 (gtk_widget_get_name (GTK_WIDGET (child)), "more") == 0)
+  {
+    return FALSE;
+  }
+
+  on_dialog_response (GTK_DIALOG (dialog), GTK_RESPONSE_OK, keyboard_info);
+  return TRUE;
 }
 
 static void

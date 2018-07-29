@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(nimf, 2018.07.20)
+AC_INIT(nimf, 2018.07.28)
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -48,14 +48,8 @@ dnl ***************************************************************************
 LIBNIMF_LT_VERSION=0:0:0
 AC_SUBST(LIBNIMF_LT_VERSION)
 
-LIBNIMF_REQUIRES="glib-2.0 gio-2.0 gio-unix-2.0 gmodule-2.0 audit"
+LIBNIMF_REQUIRES="glib-2.0 gio-2.0 gio-unix-2.0 gmodule-2.0"
 AC_SUBST(LIBNIMF_REQUIRES)
-
-AS_IF([test -d "/run/user"],     [NIMF_RUNTIME_DIR="/run/user/%d/nimf"],
-      [test -d "/var/run/user"], [NIMF_RUNTIME_DIR="/var/run/user/%d/nimf"],
-      [NIMF_RUNTIME_DIR="/tmp/nimf-%d"])
-AC_DEFINE_UNQUOTED(NIMF_RUNTIME_DIR, ["$NIMF_RUNTIME_DIR"], [Directory for storing a socket and a lock file])
-
 PKG_CHECK_MODULES(LIBNIMF_DEPS, [$LIBNIMF_REQUIRES])
 
 dnl ***************************************************************************
@@ -194,10 +188,10 @@ dnl ***************************************************************************
 PKG_CHECK_MODULES(NIMF_XIM_DEPS, [$LIBNIMF_REQUIRES] x11)
 
 dnl ***************************************************************************
-dnl nimf
+dnl nimf server
 dnl ***************************************************************************
 
-PKG_CHECK_MODULES(NIMF_DEPS, [glib-2.0 gio-unix-2.0 gobject-2.0 audit])
+PKG_CHECK_MODULES(NIMF_DEPS, [glib-2.0 gio-unix-2.0 gobject-2.0 gmodule-2.0])
 
 dnl ***************************************************************************
 dnl nimf-indicator

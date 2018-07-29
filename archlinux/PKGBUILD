@@ -2,21 +2,8 @@
 # PKGBUILD
 # This file is part of Nimf.
 #
-# Copyright (C) 2018 Hodong Kim <cogniti@gmail.com>
-#
-# Nimf is free software: you can redistribute it and/or modify it
-# under the terms of the GNU Lesser General Public License as published
-# by the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# Nimf is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
-# See the GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program;  If not, see <http://www.gnu.org/licenses/>.
-#
+# Unlike other files in the Nimf project,
+# this PKGBUILD file is in the public domain.
 
 pkgname=nimf
 pkgver=master
@@ -28,10 +15,9 @@ license=('LGPL3')
 makedepends=('binutils' 'autoconf' 'automake' 'gcc' 'make' 'glib2' 'intltool'
              'gtk3' 'gtk2' 'qt4' 'qt5-base' 'libappindicator-gtk3' 'librsvg'
              'noto-fonts-cjk' 'libhangul' 'anthy' 'libchewing' 'librime'
-             'libxkbcommon' 'wayland' 'audit')
+             'libxkbcommon' 'wayland')
 depends=('glib2' 'gtk3' 'gtk2' 'qt4' 'qt5-base' 'libappindicator-gtk3'
-         'libhangul' 'anthy' 'libchewing' 'librime' 'libxkbcommon' 'wayland'
-         'audit')
+         'libhangul' 'anthy' 'libchewing' 'librime' 'libxkbcommon' 'wayland')
 optdepends=('brise: Rime schema repository'
             'noto-fonts-cjk: Google Noto CJK fonts'
             'xorg-setxkbmap: Set the keyboard using the X Keyboard Extension')
@@ -46,7 +32,7 @@ pkgver() {
 build() {
 	cd "$srcdir/nimf-master"
 	./autogen.sh --prefix=/usr
-	make
+	make -j 4
 }
 
 package() {

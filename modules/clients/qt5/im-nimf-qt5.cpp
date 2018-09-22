@@ -27,6 +27,43 @@
 #include <QtWidgets/QWidget>
 #include "nimf-im.h"
 
+#ifdef USE_DLFCN
+
+#include <dlfcn.h>
+
+typedef struct
+{
+  NimfIM * (* im_new)                 (void);
+  void     (* im_focus_in)            (NimfIM              *im);
+  void     (* im_focus_out)           (NimfIM              *im);
+  void     (* im_reset)               (NimfIM              *im);
+  gboolean (* im_filter_event)        (NimfIM              *im,
+                                       NimfEvent           *event);
+  void     (* im_get_preedit_string)  (NimfIM              *im,
+                                       gchar              **str,
+                                       NimfPreeditAttr   ***attrs,
+                                       gint                *cursor_pos);
+  void     (* im_set_cursor_location) (NimfIM              *im,
+                                       const NimfRectangle *area);
+  void     (* im_set_use_preedit)     (NimfIM              *im,
+                                       gboolean             use_preedit);
+  gboolean (* im_get_surrounding)     (NimfIM              *im,
+                                       gchar              **text,
+                                       gint                *cursor_index);
+  void     (* im_set_surrounding)     (NimfIM              *im,
+                                       const char          *text,
+                                       gint                 len,
+                                       gint                 cursor_index);
+  NimfEvent * (* event_new)           (NimfEventType     type);
+  void        (* event_free)          (NimfEvent        *event);
+  void        (* preedit_attr_freev)  (NimfPreeditAttr **attrs);
+} NimfAPI;
+
+void    *libnimf  = NULL;
+NimfAPI *nimf_api = NULL;
+
+#endif
+
 class NimfEventHandler : public QObject
 {
   Q_OBJECT
@@ -50,7 +87,11 @@ private:
 bool NimfEventHandler::eventFilter(QObject *obj, QEvent *event)
 {
   if (event->type() == QEvent::MouseButtonPress)
+#ifndef USE_DLFCN
     nimf_im_reset (m_im);
+#else
+    nimf_api->im_reset (m_im);
+#endif
 
   return QObject::eventFilter(obj, event);
 }
@@ -101,9 +142,9 @@ public:
                                                       gpointer   user_data);
 private:
   NimfIM           *m_im;
-  NimfRectangle     m_cursor_area;
   GSettings        *m_settings;
   NimfEventHandler *m_handler;
+  NimfRectangle     m_cursor_area;
 };
 
 /* nimf signal callbacks */
@@ -129,7 +170,12 @@ NimfInputContext::on_preedit_changed (NimfIM *im, gpointer user_data)
   gint              cursor_pos;
   gint              i;
 
+#ifndef USE_DLFCN
   nimf_im_get_preedit_string (im, &str, &preedit_attrs, &cursor_pos);
+#else
+  nimf_api->im_get_preedit_string (im, &str, &preedit_attrs, &cursor_pos);
+#endif
+
   QString preeditText = QString::fromUtf8 (str);
   g_free (str);
   QList <QInputMethodEvent::Attribute> attrs;
@@ -159,6 +205,13 @@ NimfInputContext::on_preedit_changed (NimfIM *im, gpointer user_data)
                                        format);
     attrs << attr;
   }
+
+#ifndef USE_DLFCN
+  nimf_preedit_attr_freev (preedit_attrs);
+#else
+  nimf_api->preedit_attr_freev (preedit_attrs);
+#endif
+
   // cursor attribute
   attrs << QInputMethodEvent::Attribute (QInputMethodEvent::Cursor,
                                          cursor_pos, true, 0);
@@ -170,8 +223,6 @@ NimfInputContext::on_preedit_changed (NimfIM *im, gpointer user_data)
     return;
 
   QCoreApplication::sendEvent (object, &event);
-
-  nimf_preedit_attr_freev (preedit_attrs);
 }
 
 void
@@ -250,8 +301,22 @@ NimfInputContext::NimfInputContext ()
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  m_settings = g_settings_new ("org.nimf.clients.qt5");
+  m_im                 = NULL;
+  m_settings           = NULL;
+  m_handler            = NULL;
+  m_cursor_area.x      = 0;
+  m_cursor_area.y      = 0;
+  m_cursor_area.width  = 0;
+  m_cursor_area.height = 0;
+
+#ifndef USE_DLFCN
   m_im = nimf_im_new ();
+#else
+  g_return_if_fail (nimf_api != NULL);
+  m_im = nimf_api->im_new ();
+#endif
+
+  m_settings = g_settings_new ("org.nimf.clients.qt5");
 
   g_signal_connect (m_im, "preedit-start",
                     G_CALLBACK (NimfInputContext::on_preedit_start), this);
@@ -272,7 +337,6 @@ NimfInputContext::NimfInputContext ()
 
   g_signal_connect (m_settings, "changed::reset-on-mouse-button-press",
                     G_CALLBACK (NimfInputContext::on_changed_reset_on_mouse_button_press), this);
-  m_handler = NULL;
   g_signal_emit_by_name (m_settings, "changed::reset-on-mouse-button-press",
                                      "reset-on-mouse-button-press");
 }
@@ -284,14 +348,23 @@ NimfInputContext::~NimfInputContext ()
   if (m_handler)
     delete m_handler;
 
-  g_object_unref (m_im);
-  g_object_unref (m_settings);
+  if (m_im)
+    g_object_unref (m_im);
+
+  if (m_settings)
+    g_object_unref (m_settings);
 }
 
 bool
 NimfInputContext::isValid () const
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+#ifdef USE_DLFCN
+  if (nimf_api == NULL)
+    return false;
+#endif
+
   return true;
 }
 
@@ -299,14 +372,24 @@ void
 NimfInputContext::reset ()
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+#ifndef USE_DLFCN
   nimf_im_reset (m_im);
+#else
+  nimf_api->im_reset (m_im);
+#endif
 }
 
 void
 NimfInputContext::commit ()
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+#ifndef USE_DLFCN
   nimf_im_reset (m_im);
+#else
+  nimf_api->im_reset (m_im);
+#endif
 }
 
 void
@@ -335,7 +418,11 @@ NimfInputContext::update (Qt::InputMethodQueries queries) /* FIXME */
       m_cursor_area.width  = rect.width ();
       m_cursor_area.height = rect.height ();
 
+#ifndef USE_DLFCN
       nimf_im_set_cursor_location (m_im, &m_cursor_area);
+#else
+      nimf_api->im_set_cursor_location (m_im, &m_cursor_area);
+#endif
     }
   }
 }
@@ -373,13 +460,27 @@ NimfInputContext::filterEvent (const QEvent *event)
       return false;
   }
 
+#ifndef USE_DLFCN
   nimf_event = nimf_event_new (type);
+#else
+  nimf_event = nimf_api->event_new (type);
+#endif
+
   nimf_event->key.state            = key_event->nativeModifiers  ();
   nimf_event->key.keyval           = key_event->nativeVirtualKey ();
   nimf_event->key.hardware_keycode = key_event->nativeScanCode   (); /* FIXME: guint16 quint32 */
 
+#ifndef USE_DLFCN
   retval = nimf_im_filter_event (m_im, nimf_event);
+#else
+  retval = nimf_api->im_filter_event (m_im, nimf_event);
+#endif
+
+#ifndef USE_DLFCN
   nimf_event_free (nimf_event);
+#else
+  nimf_api->event_free (nimf_event);
+#endif
 
   return retval;
 }
@@ -437,12 +538,20 @@ NimfInputContext::setFocusObject (QObject *object)
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   if (!object || !inputMethodAccepted())
+#ifndef USE_DLFCN
     nimf_im_focus_out (m_im);
+#else
+    nimf_api->im_focus_out (m_im);
+#endif
 
   QPlatformInputContext::setFocusObject (object);
 
   if (object && inputMethodAccepted())
+#ifndef USE_DLFCN
     nimf_im_focus_in (m_im);
+#else
+    nimf_api->im_focus_in (m_im);
+#endif
 
   update (Qt::ImCursorRectangle);
 }
@@ -461,11 +570,47 @@ public:
   NimfInputContextPlugin ()
   {
     g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+#ifdef USE_DLFCN
+    libnimf = dlopen ("libnimf.so.0", RTLD_LAZY);
+
+    if (libnimf)
+    {
+      nimf_api = g_slice_new0 (NimfAPI);
+      nimf_api->im_new                 = reinterpret_cast<NimfIM* (*)()> (dlsym (libnimf, "nimf_im_new"));
+      nimf_api->im_focus_in            = reinterpret_cast<void (*)(NimfIM *)> (dlsym (libnimf, "nimf_im_focus_in"));
+      nimf_api->im_focus_out           = reinterpret_cast<void (*)(NimfIM *)> (dlsym (libnimf, "nimf_im_focus_out"));
+      nimf_api->im_reset               = reinterpret_cast<void (*)(NimfIM *)> (dlsym (libnimf, "nimf_im_reset"));
+      nimf_api->im_filter_event        = reinterpret_cast<gboolean (*)(NimfIM *, NimfEvent *)> (dlsym (libnimf, "nimf_im_filter_event"));
+      nimf_api->im_get_preedit_string  = reinterpret_cast<void (*)(NimfIM *, gchar **, NimfPreeditAttr ***, gint *)> (dlsym (libnimf, "nimf_im_get_preedit_string"));
+      nimf_api->im_set_cursor_location = reinterpret_cast<void (*)(NimfIM *, const NimfRectangle *)> (dlsym (libnimf, "nimf_im_set_cursor_location"));
+      nimf_api->im_set_use_preedit     = reinterpret_cast<void (*)(NimfIM *, gboolean)> (dlsym (libnimf, "nimf_im_set_use_preedit"));
+      nimf_api->im_get_surrounding     = reinterpret_cast<gboolean (*)(NimfIM *, gchar **, gint *)> (dlsym (libnimf, "nimf_im_get_surrounding"));
+      nimf_api->im_set_surrounding     = reinterpret_cast<void (*)(NimfIM *, const char *, gint, gint)> (dlsym (libnimf, "nimf_im_set_surrounding"));
+      nimf_api->event_new              = reinterpret_cast<NimfEvent * (*) (NimfEventType)> (dlsym (libnimf, "nimf_event_new"));
+      nimf_api->event_free             = reinterpret_cast<void (*) (NimfEvent *)> (dlsym (libnimf, "nimf_event_free"));
+      nimf_api->preedit_attr_freev     = reinterpret_cast<void (*) (NimfPreeditAttr **)> (dlsym (libnimf, "nimf_preedit_attr_freev"));
+    }
+#endif
   }
 
   ~NimfInputContextPlugin ()
   {
     g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+#ifdef USE_DLFCN
+    if (nimf_api)
+    {
+      g_slice_free (NimfAPI, nimf_api);
+      nimf_api = NULL;
+    }
+
+    if (libnimf)
+    {
+      dlclose (libnimf);
+      libnimf = NULL;
+    }
+#endif
   }
 
   virtual QStringList keys () const

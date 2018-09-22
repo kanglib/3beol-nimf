@@ -37,8 +37,6 @@
 #include <sys/file.h>
 #include <glib-unix.h>
 
-gboolean syslog_initialized = FALSE;
-
 static gboolean
 start_indicator_service (gchar *addr)
 {
@@ -517,6 +515,24 @@ nimf_server_start (NimfServer *server,
 
   nimf_server_load_engines  (server);
 
+  GHashTableIter iter;
+  gpointer       service;
+
+  g_hash_table_iter_init (&iter, server->services);
+
+  while (g_hash_table_iter_next (&iter, NULL, &service))
+  {
+    if (!g_strcmp0 (nimf_service_get_id (NIMF_SERVICE (service)), "nimf-indicator") && !start_indicator)
+      continue;
+    else if (!g_strcmp0 (nimf_service_get_id (NIMF_SERVICE (service)), "nimf-candidate"))
+      continue;
+    else if (!g_strcmp0 (nimf_service_get_id (NIMF_SERVICE (service)), "nimf-preedit-window"))
+      continue;
+
+    if (!nimf_service_start (NIMF_SERVICE (service)))
+      g_hash_table_iter_remove (&iter);
+  }
+
   GSocketAddress *address;
   GError         *error = NULL;
 
@@ -553,24 +569,6 @@ nimf_server_start (NimfServer *server,
 
   g_socket_service_start (server->service);
 
-  GHashTableIter iter;
-  gpointer       service;
-
-  g_hash_table_iter_init (&iter, server->services);
-
-  while (g_hash_table_iter_next (&iter, NULL, &service))
-  {
-    if (!g_strcmp0 (nimf_service_get_id (NIMF_SERVICE (service)), "nimf-indicator") && !start_indicator)
-      continue;
-    else if (!g_strcmp0 (nimf_service_get_id (NIMF_SERVICE (service)), "nimf-candidate"))
-      continue;
-    else if (!g_strcmp0 (nimf_service_get_id (NIMF_SERVICE (service)), "nimf-preedit-window"))
-      continue;
-
-    if (!nimf_service_start (NIMF_SERVICE (service)))
-      g_hash_table_iter_remove (&iter);
-  }
-
   server->active = TRUE;
 
   return TRUE;
@@ -587,14 +585,12 @@ main (int argc, char **argv)
   GError     *error  = NULL;
   gboolean    retval = FALSE;
 
-  gboolean no_daemon  = FALSE;
   gboolean is_debug   = FALSE;
   gboolean is_version = FALSE;
   gboolean start_indicator = FALSE;
 
   GOptionContext *context;
   GOptionEntry    entries[] = {
-    {"no-daemon", 0, 0, G_OPTION_ARG_NONE, &no_daemon, N_("Do not daemonize"), NULL},
     {"debug", 0, 0, G_OPTION_ARG_NONE, &is_debug, N_("Log debugging message"), NULL},
     {"version", 0, 0, G_OPTION_ARG_NONE, &is_version, N_("Version"), NULL},
     {"start-indicator", 0, 0, G_OPTION_ARG_NONE, &start_indicator, N_("Start indicator"), NULL},
@@ -631,17 +627,13 @@ main (int argc, char **argv)
     return EXIT_SUCCESS;
   }
 
-  if (no_daemon == FALSE)
-  {
-    openlog (g_get_prgname (), LOG_PID | LOG_PERROR, LOG_DAEMON);
-    syslog_initialized = TRUE;
-    g_log_set_default_handler ((GLogFunc) nimf_log_default_handler, &is_debug);
+  openlog (g_get_prgname (), LOG_PID | LOG_PERROR, LOG_DAEMON);
+  g_log_set_default_handler ((GLogFunc) nimf_log_default_handler, &is_debug);
 
-    if (daemon (0, 0) != 0)
-    {
-      g_critical ("Couldn't daemonize.");
-      return EXIT_FAILURE;
-    }
+  if (daemon (0, 0) != 0)
+  {
+    g_critical ("Couldn't daemonize.");
+    return EXIT_FAILURE;
   }
 
   if (!create_nimf_runtime_dir ())
@@ -701,8 +693,7 @@ main (int argc, char **argv)
   if (server)
     g_object_unref (server);
 
-  if (syslog_initialized)
-    closelog ();
+  closelog ();
 
   if (flock (fd, LOCK_UN))
   {

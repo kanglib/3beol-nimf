@@ -1,8 +1,61 @@
-nimf (2018.07.28-1.0~cosmic0729~3beol) cosmic; urgency=medium
+nimf (2018.08.31-1.0~cosmic0923~3beol) cosmic; urgency=medium
 
   * 3beol libhangul
 
  -- floor <createsc@gmail.com>  Sat, 02 Feb 2013 22:58:35 +0900
+
+nimf (2018.08.31) stable; urgency=medium
+
+  * Delete legal notices and disclaimers
+
+ -- Hodong Kim <cogniti@gmail.com>  Fri, 31 Aug 2018 02:00:58 +0900
+
+nimf (2018.08.29) stable; urgency=medium
+
+  * Fixed compile errors on Fedora
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 29 Aug 2018 03:16:30 +0900
+
+nimf (2018.08.28) stable; urgency=medium
+
+  * 법적 고지 및 면책 조항 추가
+  * Added --disable-hardening option (closes #139)
+
+ -- Hodong Kim <cogniti@gmail.com>  Tue, 28 Aug 2018 23:11:38 +0900
+
+nimf (2018.08.21) stable; urgency=medium
+
+  * Removed --no-daemon option (closes #138)
+  * Used g_socket_send_message() #138
+    Deadlock is reduced by one call.
+  * Added a documenter
+    https://gitlab.com/nimf-i18n/nimf/merge_requests/2
+  * Generate 96x96 icons
+
+ -- Hodong Kim <cogniti@gmail.com>  Tue, 21 Aug 2018 23:25:22 +0900
+
+nimf (2018.08.06) stable; urgency=medium
+
+  * Removed a Korean xkb option #105
+  * Fixed a segmentation fault
+
+ -- Hodong Kim <cogniti@gmail.com>  Mon, 06 Aug 2018 22:31:31 +0900
+
+nimf (2018.08.03) stable; urgency=medium
+
+  * Fixed undefined symbols #16
+  * Add how to enable Nimf in README by Bumsik Kim <k.bumsik at gmail com>
+
+ -- Hodong Kim <cogniti@gmail.com>  Fri, 03 Aug 2018 02:29:05 +0900
+
+nimf (2018.08.02) stable; urgency=medium
+
+  * Added dynamic loading by dlopen() #16
+  * Fixed a memory leak
+  * Separate client-side and server-side files #16
+  * Fixed including header file #16
+
+ -- Hodong Kim <cogniti@gmail.com>  Thu, 02 Aug 2018 22:18:57 +0900
 
 nimf (2018.07.28) stable; urgency=medium
 

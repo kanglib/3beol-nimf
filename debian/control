@@ -32,8 +32,8 @@ Homepage: https://gitlab.com/nimf-i18n/nimf
 Package: nimf
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
-Depends: ${shlibs:Depends}, ${misc:Depends}, libnimf0 (= ${binary:Version})
-Recommends: im-config, x11-xkb-utils,
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Recommends: im-config,
             nimf-anthy | nimf-chewing | nimf-libhangul | nimf-rime
 Suggests: fonts-noto-cjk
 Description: Input Method Framework

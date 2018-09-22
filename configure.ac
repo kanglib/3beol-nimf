@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(nimf, 2018.07.28)
+AC_INIT(nimf, 2018.08.31)
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -18,7 +18,13 @@ AS_IF([test "$CXX" = "g++"],
       [AS_IF([test "$GXX" != "yes"],
       AC_MSG_ERROR([C++ compiler is not found.]))])
 
-EXTRA_CFLAGS="-Wall -Werror -D_FORTIFY_SOURCE=2"
+AC_ARG_ENABLE([hardening],
+  AS_HELP_STRING([--disable-hardening], [Disable hardening]))
+
+AS_IF([test "x$enable_hardening" != "xno"],
+      [EXTRA_CFLAGS="-Wall -Werror -D_FORTIFY_SOURCE=2"],
+      [EXTRA_CFLAGS="-Wall -Werror"])
+
 AC_SUBST(EXTRA_CFLAGS)
 
 dnl ***************************************************************************

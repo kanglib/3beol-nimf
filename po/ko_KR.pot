@@ -1,84 +1,81 @@
-# Korean translation for Nimf
-# Copyright (C) 2015-2018 Hodong Kim <cogniti@gmail.com>
-# This file is distributed under the same license as the Nimf project.
-# Hodong Kim <cogniti@gmail.com>, 2015-2018.
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: nimf\n"
-"Report-Msgid-Bugs-To: \n"
+"Project-Id-Version: \n"
 "POT-Creation-Date: 2018-09-23 08:59+0900\n"
-"PO-Revision-Date: 2018-09-23 10:18+0900\n"
-"Last-Translator: Hodong Kim <cogniti@gmail.com>\n"
-"Language-Team: Hodong Kim <cogniti@gmail.com>\n"
-"Language: ko\n"
+"PO-Revision-Date: 2018-09-23 08:59+0900\n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: ko_KR\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Poedit 2.1.1\n"
+"X-Poedit-Basepath: 3beol/nimf\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Poedit-KeywordsList: _;N_\n"
+"X-Poedit-SearchPath-0: .\n"
 
 #: bin/nimf-settings.c:165 bin/nimf-settings.c:429 bin/nimf-settings.c:1106
 msgid "_OK"
-msgstr "예 (_O)"
+msgstr ""
 
 #: bin/nimf-settings.c:357
 msgid "More..."
-msgstr "더보기..."
+msgstr ""
 
 #: bin/nimf-settings.c:425
 msgid "Select a Keyboard Layout"
-msgstr "글판을 골라라"
+msgstr ""
 
 #: bin/nimf-settings.c:428
 msgid "_Layout"
-msgstr "배열보기(_L)"
+msgstr ""
 
 #: bin/nimf-settings.c:430 bin/nimf-settings.c:1107
 msgid "_Cancel"
-msgstr "취소 (_C)"
+msgstr ""
 
 #: bin/nimf-settings.c:1042
 #, c-format
 msgid "Please report a bug. (keyval: %d)"
-msgstr "버그를 제보해 주세요. (keyval: %d)"
+msgstr ""
 
 #: bin/nimf-settings.c:1103
 msgid "Press key combination"
-msgstr "키 조합을 누르세요"
+msgstr ""
 
 #: bin/nimf-settings.c:1119
 msgid "Click here and then press key combination"
-msgstr "여기를 클릭한 후 키 조합을 누르세요"
+msgstr ""
 
 #: bin/nimf-settings.c:1388
 msgid "Nimf Settings"
-msgstr "님프 설정"
+msgstr ""
 
 #: bin/nimf.c:594
 msgid "Log debugging message"
-msgstr "디버깅 메시지를 기록합니다"
+msgstr ""
 
 #: bin/nimf.c:595
 msgid "Version"
-msgstr "버전"
+msgstr ""
 
 #: bin/nimf.c:596
 msgid "Start indicator"
-msgstr "표시기를 시작합니다"
+msgstr ""
 
 #: data/autostart/nimf.desktop:3 modules/clients/gtk/im-nimf.c:565
 #: modules/services/indicator/nimf-indicator.c:107
 msgid "Nimf"
-msgstr "님프"
+msgstr ""
 
 #: data/autostart/nimf.desktop:4
 msgid "Input Method"
-msgstr "입력기"
+msgstr ""
 
 #: data/autostart/nimf.desktop:5
 msgid "Start Input Method"
-msgstr "시작 입력기"
+msgstr ""
 
 #: data/autostart/nimf.desktop:7
 msgid "nimf-logo"
@@ -86,7 +83,7 @@ msgstr ""
 
 #: libnimf/org.nimf.gschema.xml:8
 msgid "'Nimf'"
-msgstr "'님프'"
+msgstr ""
 
 #: libnimf/org.nimf.gschema.xml:9 libnimf/org.nimf.gschema.xml:26
 #: libnimf/org.nimf.gschema.xml:33 libnimf/org.nimf.gschema.xml:40
@@ -99,7 +96,7 @@ msgstr "'님프'"
 #: modules/engines/nimf-system-keyboard/org.nimf.engines.nimf-system-keyboard.gschema.xml:7
 #: modules/services/xim/org.nimf.services.xim.gschema.xml:7
 msgid "schema name for nimf-settings"
-msgstr "nimf-settings 를 위한 스키마 이름"
+msgstr ""
 
 #: libnimf/org.nimf.gschema.xml:10 libnimf/org.nimf.gschema.xml:27
 #: libnimf/org.nimf.gschema.xml:34 libnimf/org.nimf.gschema.xml:41
@@ -116,77 +113,75 @@ msgstr "nimf-settings 를 위한 스키마 이름"
 #: modules/engines/nimf-system-keyboard/org.nimf.engines.nimf-system-keyboard.gschema.xml:8
 #: modules/services/xim/org.nimf.services.xim.gschema.xml:8
 msgid "This key is intended for nimf-settings."
-msgstr "이 키는 nimf-settings 를 위해 고안되었습니다."
+msgstr ""
 
 #: libnimf/org.nimf.gschema.xml:14 libnimf/org.nimf.gschema.xml:15
 msgid "Hotkeys for switching input method engine"
-msgstr "입력 엔진을 전환하기 위한 핫키"
+msgstr ""
 
 #: libnimf/org.nimf.gschema.xml:19
 msgid "Use singleton mode"
-msgstr "싱글톤 모드를 사용합니다"
+msgstr ""
 
 #: libnimf/org.nimf.gschema.xml:20
 msgid "Use singleton"
-msgstr "싱글톤 모드를 사용합니다"
+msgstr ""
 
 #: libnimf/org.nimf.gschema.xml:25
 msgid "'Services'"
-msgstr "'서비스'"
+msgstr ""
 
 #: libnimf/org.nimf.gschema.xml:32
 msgid "'Clients'"
-msgstr "'클라이언트'"
+msgstr ""
 
 #: libnimf/org.nimf.gschema.xml:39
 msgid "'Engines'"
-msgstr "'엔진'"
+msgstr ""
 
 #: libnimf/org.nimf.gschema.xml:45
 msgid "Default language engine"
-msgstr "기본 언어 엔진"
+msgstr ""
 
 #: libnimf/org.nimf.gschema.xml:46
 msgid "Default language engine on startup"
-msgstr "시작할 때의 기본 언어 엔진"
+msgstr ""
 
 #: modules/clients/gtk/org.nimf.clients.gtk.gschema.xml:6
 msgid "'GTK+'"
-msgstr "'GTK+'"
+msgstr ""
 
 #: modules/clients/gtk/org.nimf.clients.gtk.gschema.xml:12
 msgid "hooking gdk key events"
-msgstr "gdk key events 후킹하기"
+msgstr ""
 
 #: modules/clients/gtk/org.nimf.clients.gtk.gschema.xml:13
 msgid ""
 "filter all key events before delivering them normally, which avoids bugs of "
 "many applications"
 msgstr ""
-"모든 키 이벤트를 전달하기 전에 그것들을 투과시킵니다. 이것은 여러 응용 프로"
-"그램의 버그를 회피합니다."
 
 #: modules/clients/gtk/org.nimf.clients.gtk.gschema.xml:17
 #: modules/clients/gtk/org.nimf.clients.gtk.gschema.xml:18
 #: modules/clients/qt5/org.nimf.clients.qt5.gschema.xml:12
 #: modules/clients/qt5/org.nimf.clients.qt5.gschema.xml:13
 msgid "Reset when clicking the mouse button"
-msgstr "마우스 버튼을 클릭할 때 리셋합니다"
+msgstr ""
 
 #: modules/clients/qt5/org.nimf.clients.qt5.gschema.xml:6
 msgid "'Qt5'"
-msgstr "'Qt5'"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:6
 msgid "'Japanese (anthy)'"
-msgstr "'일본어 (anthy)'"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:12
 #: modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml:12
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:12
 #: modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml:12
 msgid "Active engine"
-msgstr "엔진 활성화"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:13
 #: modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml:13
@@ -194,242 +189,190 @@ msgstr "엔진 활성화"
 #: modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml:13
 msgid "The engine will be loaded on startup if available. Restart required"
 msgstr ""
-"만약 가능하다면 이 엔진은 시작할 때 로드될 것입니다. 재시작이 필요합니다."
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:17
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:18
 msgid "Trigger keys for switching Japanese / System"
-msgstr "일본어 / 시스템 전환을 위한 작동 키"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:22
 msgid "Hotkey for Hiragana"
-msgstr "히라가나 단축키"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:23
 msgid "Hotkeys for converting to Hiragana"
-msgstr "히라가나로 변환하기 위한 단축키"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:27
 msgid "Hotkey for Katakana"
-msgstr "가타카나 단축키"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:28
 msgid "Hotkeys for converting to Katakana"
-msgstr "가타카나로 변환하기 위한 단축키"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:36
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:37
 msgid "Japanese input mode"
-msgstr "일본어 입력 모드"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:40
 msgid "'Romaji'"
-msgstr "'로마지'"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:41
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:46
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:60
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:65
 msgid "key value for UI l10n"
-msgstr "UI l10n 을 위한 키 값"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:45
 msgid "'Kana input on the English Keyboard (pc104)'"
-msgstr "'영문 키보드로 가나 입력 (pc104)'"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:55
 msgid "n input mode"
-msgstr "n 입력 모드"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:56
 msgid "Choose how you type hiragana letter n."
-msgstr "히라가나 문자 n을 입력하는 방법을 선택하세요."
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:59
 msgid "'Common practice'"
-msgstr "'일반적인 관행'"
+msgstr ""
 
 #: modules/engines/nimf-anthy/org.nimf.engines.nimf-anthy.gschema.xml:64
 msgid "'Explicitly type nn'"
-msgstr "'명시적으로 nn을 누릅니다'"
+msgstr ""
 
 #: modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml:6
 msgid "'Chinese (chewing)'"
-msgstr "'중국어 (chewing)'"
+msgstr ""
 
 #: modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml:17
 #: modules/engines/nimf-chewing/org.nimf.engines.nimf-chewing.gschema.xml:18
 #: modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml:17
 #: modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml:18
 msgid "Trigger keys for switching Chinese / System"
-msgstr "중국어 / 시스템 전환을 위한 작동 키"
+msgstr ""
 
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:6
 msgid "'Korean (libhangul)'"
-msgstr "'한국어 (libhangul)'"
+msgstr ""
 
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:17
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:18
 msgid "Korean keyboard layout"
-msgstr "한국어 키보드 배열"
+msgstr ""
 
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:22
 msgid "Trigger keys for switching Korean / System"
-msgstr "한국어 / 시스템 전환을 위한 작동 키"
+msgstr ""
 
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:23
 msgid "Binding to change Korean / System"
-msgstr "한국어 / 시스템 전환하기 위한 바인딩"
+msgstr ""
 
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:27
 msgid "Hotkey for Hanja"
-msgstr "한자를 위한 핫키"
+msgstr ""
 
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:28
 msgid "Binding to Hanja key"
-msgstr "한자키에 대한 바인딩"
+msgstr ""
 
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:32
 msgid "Use a rule composing double consonants"
-msgstr "겹자음 조합 규칙을 사용합니다"
+msgstr ""
 
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:33
 msgid "compose a double consonant on pressing same consonant twice"
-msgstr "같은 자음을 두 번 누를 때 겹자음을 조합합니다"
+msgstr ""
 
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:37
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:38
 msgid "Auto-reordering in Dubeolsik"
-msgstr "두벌식에서 자동 재정렬"
+msgstr ""
 
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:42
 msgid "Ignore reset() in commit callback"
-msgstr "commit 콜백에서 reset()을 무시합니다"
+msgstr ""
 
 #: modules/engines/nimf-libhangul/org.nimf.engines.nimf-libhangul.gschema.xml:43
 msgid "Ignore reset() called by commit callback in application"
 msgstr ""
-"응용 어플리케이션에서 commit 콜백에 의해 호출되는 reset()을 무시합니다"
 
 #: modules/engines/nimf-rime/nimf-rime.c:399
 msgid "Rime"
-msgstr "라임"
+msgstr ""
 
 #: modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml:6
 msgid "'Chinese (rime)'"
-msgstr "'중국어 (rime)'"
+msgstr ""
 
 #: modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml:22
 msgid "Simplified Chinese"
-msgstr "중국어 간체"
+msgstr ""
 
 #: modules/engines/nimf-rime/org.nimf.engines.nimf-rime.gschema.xml:23
 msgid ""
 "If Simplified Chinese is set, Simplified Chinese is used. Otherwise "
 "Traditional Chinese is used."
 msgstr ""
-"중국어 간체가 설정되면 중국어 간체가 사용됩니다. 그렇지 않으면 중국어 번체"
-"가 사용됩니다."
 
 #: modules/engines/nimf-system-keyboard/org.nimf.engines.nimf-system-keyboard.gschema.xml:6
 msgid "'System Keyboard'"
-msgstr "'시스템 키보드'"
+msgstr ""
 
 #: modules/engines/nimf-system-keyboard/org.nimf.engines.nimf-system-keyboard.gschema.xml:12
 #: modules/engines/nimf-system-keyboard/org.nimf.engines.nimf-system-keyboard.gschema.xml:13
 msgid "Trigger keys for switching to System Keyboard"
-msgstr "시스템 키보드로 전환하기 위한 작동 키"
+msgstr ""
 
 #: modules/services/indicator/nimf-indicator.c:88
 #: modules/services/indicator/nimf-indicator.c:89
 #: modules/services/indicator/nimf-indicator.c:90
 msgid "Hodong Kim <cogniti@gmail.com>"
-msgstr "김호동 <cogniti@gmail.com>"
+msgstr ""
 
 #: modules/services/indicator/nimf-indicator.c:91
 msgid "Bumsik Kim <k.bumsik@gmail.com>"
-msgstr "김범식 <k.bumsik@gmail.com>"
+msgstr ""
 
 #: modules/services/indicator/nimf-indicator.c:102
 msgid "Nimf is an input method framework"
-msgstr "님프는 입력 방법 프레임워크입니다"
+msgstr ""
 
 #: modules/services/indicator/nimf-indicator.c:103
 msgid "Copyright (c) 2015-2018 Hodong Kim"
-msgstr "저작권 (c) 2015-2018 김호동"
+msgstr ""
 
 #: modules/services/indicator/nimf-indicator.c:108
 msgid "Hodong Kim, N"
-msgstr "김호동, N"
+msgstr ""
 
 #: modules/services/indicator/nimf-indicator.c:111
 msgid "Website"
-msgstr "웹사이트"
+msgstr ""
 
 #: modules/services/indicator/nimf-indicator.c:238
 msgid "Settings"
-msgstr "설정"
+msgstr ""
 
 #: modules/services/indicator/nimf-indicator.c:239
 msgid "About"
-msgstr "정보"
+msgstr ""
 
 #: modules/services/xim/org.nimf.services.xim.gschema.xml:6
 msgid "'XIM'"
-msgstr "'XIM'"
+msgstr ""
 
 #: modules/services/xim/org.nimf.services.xim.gschema.xml:12
 msgid "Always draw preedit string on the server-side"
-msgstr "항상 서버 측에서 사전 편집 문자열을 그립니다"
+msgstr ""
 
 #: modules/services/xim/org.nimf.services.xim.gschema.xml:13
 msgid "If you have trouble viewing preedit string, check this option."
-msgstr "사전 편집 문자열을 보는 데 문제가 있으면, 이 옵션을 선택하세요."
-
-#~ msgid "Do not daemonize"
-#~ msgstr "데몬화하지 않습니다"
-
-#~ msgid "Korean Hangul/Hanja XKB Option"
-#~ msgstr "한국어 한글/한자 XKB 옵션"
-
-#~ msgid "Korean Hangul/Hanja keys"
-#~ msgstr "한국어 한글/한자 키"
-
-#~ msgid "'Not assigned'"
-#~ msgstr "'할당되지 않음'"
-
-#~ msgid "'Hardware Hangul/Hanja keys'"
-#~ msgstr "'하드웨어 한글/한자 키'"
-
-#~ msgid "'Right Alt as Hangul, right Ctrl as Hanja'"
-#~ msgstr "'오른쪽 Alt키를 한글키로, 오른쪽 Ctrl키를 한자키로 할당'"
-
-#~ msgid "'Right Ctrl as Hangul, right Alt as Hanja'"
-#~ msgstr "'오른쪽 Ctrl키를 한글키로, 오른쪽 Alt키를 한자키로 할당'"
-
-#~ msgid "'Dubeolsik'"
-#~ msgstr "'두벌식'"
-
-#~ msgid "'Dubeolsik Yetgeul'"
-#~ msgstr "'두벌식 옛글'"
-
-#~ msgid "'Ahnmatae'"
-#~ msgstr "'안마태'"
-
-#~ msgid "'Sebeolsik Final'"
-#~ msgstr "'세벌식 최종'"
-
-#~ msgid "'Sebeolsik 390'"
-#~ msgstr "'세벌식 390'"
-
-#~ msgid "'Sebeolsik Noshift'"
-#~ msgstr "'세벌식 순아래'"
-
-#~ msgid "'Sebeolsik Yetgeul'"
-#~ msgstr "'세벌식 옛글'"
-
-#~ msgid "'Sebeolsik Dubeol Layout'"
-#~ msgstr "'세벌식 두벌 배열'"
-
-#~ msgid "'Romaja'"
-#~ msgstr "'로마자'"
+msgstr ""

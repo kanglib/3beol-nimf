@@ -616,40 +616,6 @@ msgstr "'시스템 키보드'"
 msgid "Trigger keys for switching to System Keyboard"
 msgstr "시스템 키보드로 전환하기 위한 작동 키"
 
-#: modules/services/indicator/nimf-indicator.c:88
-#: modules/services/indicator/nimf-indicator.c:89
-#: modules/services/indicator/nimf-indicator.c:90
-msgid "Hodong Kim <cogniti@gmail.com>"
-msgstr "김호동 <cogniti@gmail.com>"
-
-#: modules/services/indicator/nimf-indicator.c:91
-msgid "Bumsik Kim <k.bumsik@gmail.com>"
-msgstr "김범식 <k.bumsik@gmail.com>"
-
-#: modules/services/indicator/nimf-indicator.c:102
-msgid "Nimf is an input method framework"
-msgstr "님프는 입력 방법 프레임워크입니다"
-
-#: modules/services/indicator/nimf-indicator.c:103
-msgid "Copyright (c) 2015-2018 Hodong Kim"
-msgstr "저작권 (c) 2015-2018 김호동"
-
-#: modules/services/indicator/nimf-indicator.c:108
-msgid "Hodong Kim, N"
-msgstr "김호동, N"
-
-#: modules/services/indicator/nimf-indicator.c:111
-msgid "Website"
-msgstr "웹사이트"
-
-#: modules/services/indicator/nimf-indicator.c:238
-msgid "Settings"
-msgstr "설정"
-
-#: modules/services/indicator/nimf-indicator.c:239
-msgid "About"
-msgstr "정보"
-
 #: modules/services/xim/org.nimf.services.xim.gschema.xml:6
 msgid "'XIM'"
 msgstr "'XIM'"

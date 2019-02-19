@@ -3,7 +3,7 @@
  * nimf.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2015-2018 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2015-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -20,74 +20,37 @@
  */
 
 #include <glib.h>
-#include <gio/gio.h>
-#include <gio/gunixsocketaddress.h>
-#include "nimf-message.h"
 #include "nimf-private.h"
 #include <glib/gstdio.h>
 #include <fcntl.h>
-#include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include "nimf-server.h"
 #include "nimf-server-im.h"
-#include "nimf-service.h"
 #include "nimf-module.h"
+#include "nimf-service.h"
+#include <gio/gunixsocketaddress.h>
 #include <glib/gi18n.h>
 #include "config.h"
-#include <stdlib.h>
 #include <syslog.h>
-#include <sys/file.h>
+#include <errno.h>
 #include <glib-unix.h>
-
-static gboolean
-start_indicator_service (gchar *addr)
-{
-  GSocketAddress *address;
-  GSocket        *socket;
-  gboolean        retval = FALSE;
-
-  address = g_unix_socket_address_new_with_type (addr, -1,
-                                                 G_UNIX_SOCKET_ADDRESS_PATH);
-
-  socket = g_socket_new (G_SOCKET_FAMILY_UNIX,
-                         G_SOCKET_TYPE_STREAM,
-                         G_SOCKET_PROTOCOL_DEFAULT,
-                         NULL);
-
-  if (g_socket_connect (socket, address, NULL, NULL))
-  {
-    NimfMessage *message;
-
-    if (socket && !g_socket_is_closed (socket))
-      nimf_send_message (socket, 0, NIMF_MESSAGE_START_INDICATOR,
-                         NULL, 0, NULL);
-
-    if ((message = nimf_recv_message (socket)))
-    {
-      retval = *(gboolean *) message->data;
-      nimf_message_unref (message);
-    }
-  }
-
-  g_object_unref (socket);
-  g_object_unref (address);
-
-  return retval;
-}
 
 static gboolean
 create_nimf_runtime_dir ()
 {
-  gchar   *runtime_dir;
+  gchar   *nimf_path;
   gboolean retval = TRUE;
 
-  runtime_dir = g_strconcat (g_get_user_runtime_dir (), "/nimf", NULL);
+  nimf_path = nimf_get_nimf_path ();
 
-  if (g_mkdir_with_parents (runtime_dir, 0700))
+  if (g_mkdir_with_parents (nimf_path, 0700))
   {
-    g_critical (G_STRLOC": Can't create directory: %s", runtime_dir);
+    g_critical (G_STRLOC": Can't create directory: %s", nimf_path);
     retval = FALSE;
   }
 
-  g_free (runtime_dir);
+  g_free (nimf_path);
 
   return retval;
 }
@@ -98,7 +61,7 @@ open_lock_file ()
   gchar *path;
   int    fd;
 
-  path = g_strconcat (g_get_user_runtime_dir (), "/nimf/lock", NULL);
+  path = nimf_get_lock_path ();
   fd = g_open (path, O_RDWR | O_CREAT, 0600);
 
   if (fd == -1)
@@ -107,6 +70,18 @@ open_lock_file ()
   g_free (path);
 
   return fd;
+}
+
+static int
+set_lock (int fd, int type)
+{
+  struct flock lock;
+  lock.l_type   = type;
+  lock.l_start  = 0;
+  lock.l_whence = SEEK_SET;
+  lock.l_len    = 0;
+
+  return fcntl (fd, F_SETLK, &lock);
 }
 
 static gboolean
@@ -246,25 +221,6 @@ on_incoming_message_nimf (GSocket        *socket,
                            NIMF_MESSAGE_SET_SURROUNDING_REPLY, NULL, 0, NULL);
       }
       break;
-    case NIMF_MESSAGE_GET_SURROUNDING:
-      {
-        gchar *data;
-        gint   cursor_index;
-        gint   str_len = 0;
-
-        retval = nimf_service_im_get_surrounding (NIMF_SERVICE_IM (im), &data, &cursor_index);
-        str_len = strlen (data);
-        data = g_realloc (data, str_len + 1 + sizeof (gint) + sizeof (gboolean));
-        *(gint *) (data + str_len + 1) = cursor_index;
-        *(gboolean *) (data + str_len + 1 + sizeof (gint)) = retval;
-
-        nimf_send_message (socket, icid,
-                           NIMF_MESSAGE_GET_SURROUNDING_REPLY, data,
-                           str_len + 1 + sizeof (gint) + sizeof (gboolean),
-                           NULL);
-        g_free (data);
-      }
-      break;
     case NIMF_MESSAGE_SET_CURSOR_LOCATION:
       nimf_message_ref (message);
       nimf_service_im_set_cursor_location (NIMF_SERVICE_IM (im), (NimfRectangle *) message->data);
@@ -278,20 +234,6 @@ on_incoming_message_nimf (GSocket        *socket,
       nimf_message_unref (message);
       nimf_send_message (socket, icid, NIMF_MESSAGE_SET_USE_PREEDIT_REPLY,
                          NULL, 0, NULL);
-      break;
-    case NIMF_MESSAGE_START_INDICATOR:
-      {
-        NimfService *service;
-        gboolean     retval = FALSE;
-
-        service = g_hash_table_lookup (connection->server->services,
-                                       "nimf-indicator");
-        if (!nimf_service_is_active (service))
-          retval = nimf_service_start (service);
-
-        nimf_send_message (socket, icid, NIMF_MESSAGE_START_INDICATOR_REPLY,
-                           &retval, sizeof (gboolean), NULL);
-      }
       break;
     case NIMF_MESSAGE_PREEDIT_START_REPLY:
     case NIMF_MESSAGE_PREEDIT_CHANGED_REPLY:
@@ -496,8 +438,7 @@ nimf_server_load_engines (NimfServer *server)
 }
 
 static gboolean
-nimf_server_start (NimfServer *server,
-                   gboolean    start_indicator)
+nimf_server_start (NimfServer *server)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -522,9 +463,7 @@ nimf_server_start (NimfServer *server,
 
   while (g_hash_table_iter_next (&iter, NULL, &service))
   {
-    if (!g_strcmp0 (nimf_service_get_id (NIMF_SERVICE (service)), "nimf-indicator") && !start_indicator)
-      continue;
-    else if (!g_strcmp0 (nimf_service_get_id (NIMF_SERVICE (service)), "nimf-candidate"))
+    if (!g_strcmp0 (nimf_service_get_id (NIMF_SERVICE (service)), "nimf-candidate"))
       continue;
     else if (!g_strcmp0 (nimf_service_get_id (NIMF_SERVICE (service)), "nimf-preedit-window"))
       continue;
@@ -534,44 +473,44 @@ nimf_server_start (NimfServer *server,
   }
 
   GSocketAddress *address;
+  gchar          *path;
   GError         *error = NULL;
 
-  server->path = nimf_get_socket_path ();
   server->service = g_socket_service_new ();
-
-  if (g_unix_socket_address_abstract_names_supported ())
-    address = g_unix_socket_address_new_with_type (server->path, -1,
-                                                   G_UNIX_SOCKET_ADDRESS_PATH);
-  else
-  {
-    g_critical ("Abstract UNIX domain socket names are not supported.");
-    return FALSE;
-  }
-
+  path = nimf_get_socket_path ();
+  address = g_unix_socket_address_new_with_type (path, -1,
+                                                 G_UNIX_SOCKET_ADDRESS_PATH);
   g_socket_listener_add_address (G_SOCKET_LISTENER (server->service), address,
                                  G_SOCKET_TYPE_STREAM,
                                  G_SOCKET_PROTOCOL_DEFAULT,
                                  NULL, NULL, &error);
   g_object_unref (address);
+  g_chmod (path, 0600);
+  g_free  (path);
 
   if (error)
   {
-    g_critical ("%s", error->message);
+    g_critical (G_STRLOC ": %s: %s", G_STRFUNC, error->message);
     g_clear_error (&error);
 
     return FALSE;
   }
 
-  g_chmod (server->path, 0700);
-
   g_signal_connect (server->service, "incoming",
                     G_CALLBACK (on_new_connection), server);
-
   g_socket_service_start (server->service);
 
-  server->active = TRUE;
+  return server->active = TRUE;
+}
 
-  return TRUE;
+static void unlink_socket_file ()
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  gchar *path;
+  path = nimf_get_socket_path ();
+  g_unlink (path);
+  g_free (path);
 }
 
 int
@@ -587,13 +526,11 @@ main (int argc, char **argv)
 
   gboolean is_debug   = FALSE;
   gboolean is_version = FALSE;
-  gboolean start_indicator = FALSE;
 
   GOptionContext *context;
   GOptionEntry    entries[] = {
-    {"debug", 0, 0, G_OPTION_ARG_NONE, &is_debug, N_("Log debugging message"), NULL},
+    {"debug",   0, 0, G_OPTION_ARG_NONE, &is_debug,   N_("Log debugging message"), NULL},
     {"version", 0, 0, G_OPTION_ARG_NONE, &is_version, N_("Version"), NULL},
-    {"start-indicator", 0, 0, G_OPTION_ARG_NONE, &start_indicator, N_("Start indicator"), NULL},
     {NULL}
   };
 
@@ -642,24 +579,21 @@ main (int argc, char **argv)
   if ((fd = open_lock_file ()) == -1)
     return EXIT_FAILURE;
 
-  if (flock (fd, LOCK_EX | LOCK_NB))
+  if (set_lock (fd, F_WRLCK))
   {
-    if (start_indicator)
+    if (errno == EACCES || errno == EAGAIN)
     {
-      gchar   *sock_path;
-      gboolean retval;
-
-      sock_path = nimf_get_socket_path ();
-      retval = start_indicator_service (sock_path);
-
-      g_free (sock_path);
-
-      if (retval)
-        return EXIT_SUCCESS;
+      close(fd);
+      g_message (G_STRLOC ": %s: Another instance appears to be running: %s",
+                 G_STRFUNC, strerror (errno));
+      return EXIT_FAILURE;
     }
+    else
+    {
+      g_warning (G_STRLOC ": %s: %s", G_STRFUNC, strerror (errno));
 
-    g_message ("Another instance appears to be running.");
-    return EXIT_FAILURE;
+      return EXIT_FAILURE;
+    }
   }
 
   if (!write_pid (fd))
@@ -668,9 +602,11 @@ main (int argc, char **argv)
     goto finally;
   }
 
+  unlink_socket_file ();
+
   server = g_object_new (NIMF_TYPE_SERVER, NULL);
 
-  if (!nimf_server_start (server, start_indicator))
+  if (!nimf_server_start (server))
   {
     retval = EXIT_FAILURE;
     goto finally;
@@ -695,24 +631,25 @@ main (int argc, char **argv)
 
   closelog ();
 
-  if (flock (fd, LOCK_UN))
+  if (set_lock (fd, F_UNLCK))
   {
-    g_critical ("Failed to unlock file: %s/nimf/lock", g_get_user_runtime_dir ());
+    g_critical ("Failed to unlock file: %s", nimf_get_lock_path ());
     retval = EXIT_FAILURE;
   }
 
   close (fd);
 
-  gchar *file, *dir;
+  gchar *lock_path, *nimf_path;
 
-  file = g_strconcat (g_get_user_runtime_dir (), "/nimf/lock", NULL);
-  dir  = g_strconcat (g_get_user_runtime_dir (), "/nimf", NULL);
+  lock_path = nimf_get_lock_path   ();
+  nimf_path = nimf_get_nimf_path   ();
 
-  g_unlink (file);
-  g_rmdir  (dir);
+  unlink_socket_file ();
+  g_unlink (lock_path);
+  g_rmdir  (nimf_path);
 
-  g_free (file);
-  g_free (dir);
+  g_free (lock_path);
+  g_free (nimf_path);
 
   return retval;
 }

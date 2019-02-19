@@ -13,8 +13,8 @@
    height="16px"
    id="svg2985"
    version="1.1"
-   inkscape:version="0.91 r13725"
-   sodipodi:docname="nimf-chewing.svg">
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
+   sodipodi:docname="nimf-m17n.svg">
   <defs
      id="defs2987" />
   <sodipodi:namedview
@@ -25,16 +25,16 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="12"
-     inkscape:cx="8"
+     inkscape:cx="7.9166667"
      inkscape:cy="8"
      inkscape:current-layer="layer1"
      showgrid="true"
      inkscape:grid-bbox="true"
      inkscape:document-units="px"
-     inkscape:window-width="531"
+     inkscape:window-width="746"
      inkscape:window-height="438"
-     inkscape:window-x="591"
-     inkscape:window-y="64"
+     inkscape:window-x="1105"
+     inkscape:window-y="377"
      inkscape:window-maximized="0">
     <inkscape:grid
        type="xygrid"
@@ -68,14 +68,14 @@
        sodipodi:nodetypes="ccccccccc" />
     <text
        xml:space="preserve"
-       style="font-size:10px;font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;line-height:125%;letter-spacing:0px;word-spacing:0px;fill:#1a1a1a;fill-opacity:1;stroke:none;font-family:Noto Sans Mono CJK KR;-inkscape-font-specification:Sans Bold"
-       x="3"
-       y="12"
-       id="text2987"
-       sodipodi:linespacing="125%"><tspan
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;line-height:0%;font-family:'Noto Sans Mono CJK KR';-inkscape-font-specification:'Sans Bold';letter-spacing:0px;word-spacing:0px;fill:#1a1a1a;fill-opacity:1;stroke:none"
+       x="5.5"
+       y="11"
+       id="text2987"><tspan
          sodipodi:role="line"
          id="tspan2989"
-         x="3"
-         y="12">酷</tspan></text>
+         x="5.5"
+         y="11"
+         style="font-size:10px;line-height:1.25">m</tspan></text>
   </g>
 </svg>

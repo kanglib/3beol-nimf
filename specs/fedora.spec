@@ -1,6 +1,6 @@
 Name:     nimf
 Summary:  An input method framework
-Version:  2018.08.31
+Version:  2019.02.17
 Release:  1%{?dist}
 License:  LGPLv3+
 Group:    User Interface/Desktops
@@ -22,10 +22,11 @@ BuildRequires: google-noto-cjk-fonts
 BuildRequires: libhangul-devel
 BuildRequires: anthy-devel
 BuildRequires: anthy
-BuildRequires: libchewing-devel
 BuildRequires: librime-devel >= 1.2.9
 BuildRequires: libxkbcommon-devel
 BuildRequires: wayland-devel
+BuildRequires: libxklavier-devel
+BuildRequires: m17n-lib-devel
 
 Requires:         im-chooser
 Requires:         anthy
@@ -90,7 +91,6 @@ fi
 %files
 %config %{_xinputconf}
 %config %{_sysconfdir}/apparmor.d/abstractions/nimf
-%config %{_sysconfdir}/xdg/autostart/nimf.desktop
 %{_bindir}/*
 %{_libdir}/gtk-2.0/*
 %{_libdir}/gtk-3.0/*
@@ -98,6 +98,7 @@ fi
 %{_libdir}/nimf/*
 %{_libdir}/qt4/*
 %{_libdir}/qt5/*
+%{_datadir}/applications/*
 %{_datadir}/glib-2.0/*
 %{_datadir}/icons/*
 %{_datadir}/locale/*
@@ -109,5 +110,5 @@ fi
 %{_libdir}/pkgconfig/*
 
 %changelog
-* Fri Aug 31 2018 Hodong Kim <cogniti@gmail.com> - 2018.08.31-1
+* Sun Feb 17 2019 Hodong Kim <cogniti@gmail.com> - 2019.02.17-1
 - See https://gitlab.com/nimf-i18n/nimf/blob/master/debian/changelog

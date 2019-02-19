@@ -19,13 +19,14 @@ Build-Depends: debhelper (>= 9),
                libhangul-dev,
                libanthy-dev,
                anthy,
-               libchewing3-dev,
                librime-dev (>= 1.2.9),
                libxkbcommon-dev (>= 0.5.0),
                libwayland-dev,
                libaudit-dev,
                libgdk-pixbuf2.0-dev,
-               wayland-protocols
+               wayland-protocols,
+               libxklavier-dev,
+               libm17n-dev
 Standards-Version: 3.9.8
 Homepage: https://gitlab.com/nimf-i18n/nimf
 
@@ -33,8 +34,7 @@ Package: nimf
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Recommends: im-config,
-            nimf-anthy | nimf-chewing | nimf-libhangul | nimf-rime
+Recommends: im-config, nimf-anthy | nimf-libhangul | nimf-rime
 Suggests: fonts-noto-cjk
 Description: Input Method Framework
  Nimf is an input method framework which has a module-based client-server
@@ -46,6 +46,10 @@ Description: Input Method Framework
      * nimf including IMdkit(XIM)
   * Language Engine:
      * System keyboard input module
+     * Chinese: nimf-rime
+     * Japanese: nimf-anthy
+     * Korean: nimf-libhangul
+     * Other languages: nimf-m17n
   * Service Modules:
      * Indicator (based on appindicator)
      * Wayland
@@ -57,7 +61,7 @@ Description: Input Method Framework
   * Settings tool to configure the Nimf:
      * nimf-settings
 
-Package: libnimf0
+Package: libnimf1
 Section: libs
 Architecture: any
 Pre-Depends: ${misc:Pre-Depends}
@@ -73,7 +77,7 @@ Package: nimf-dev
 Section: libdevel
 Architecture: any
 Depends: ${misc:Depends},
-         libnimf0 (= ${binary:Version}),
+         libnimf1 (= ${binary:Version}),
          libglib2.0-dev
 Description: Input Method Framework (development file)
  Nimf is an input method framework which has a module-based client-server
@@ -84,7 +88,7 @@ Description: Input Method Framework (development file)
 
 Package: nimf-anthy
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, anthy
+Depends: ${shlibs:Depends}, ${misc:Depends}, nimf, anthy
 Suggests: fonts-noto-cjk
 Description: Japanese input module for Nimf, based on anthy
  Nimf is an input method framework which has a module-based client-server
@@ -92,17 +96,6 @@ Description: Japanese input module for Nimf, based on anthy
  synchronously with the Nimf server via a Unix socket.
  .
  This package provides a Japanese input module based on anthy.
-
-Package: nimf-chewing
-Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
-Suggests: fonts-noto-cjk
-Description: Chinese input module for Nimf, based on chewing
- Nimf is an input method framework which has a module-based client-server
- architecture in which an application acts as a client and communicates
- synchronously with the Nimf server via a Unix socket.
- .
- This package provides a Chinese input module based on chewing.
 
 Package: nimf-libhangul
 Architecture: any
@@ -115,9 +108,20 @@ Description: Korean input module for Nimf, based on libhangul
  .
  This package provides a Korean input module based on libhangul.
 
+Package: nimf-m17n
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, nimf
+Suggests: fonts-noto-cjk, m17n-lib-mimx
+Description: Multilingual input module for Nimf, based on m17n
+ Nimf is an input method framework which has a module-based client-server
+ architecture in which an application acts as a client and communicates
+ synchronously with the Nimf server via a Unix socket.
+ .
+ This package provides a multilingual input module based on m17n.
+
 Package: nimf-rime
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, nimf
 Recommends: librime-data
 Suggests: fonts-noto-cjk
 Description: Chinese input module for Nimf, based on rime

@@ -3,7 +3,7 @@
  * nimf-indicator.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2015-2018 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2015-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -24,6 +24,8 @@
 #include <gtk/gtk.h>
 #include "nimf.h"
 #include <libappindicator/app-indicator.h>
+#include <libxklavier/xklavier.h>
+#include <gdk/gdkx.h>
 
 #define NIMF_TYPE_INDICATOR             (nimf_indicator_get_type ())
 #define NIMF_INDICATOR(obj)             (G_TYPE_CHECK_INSTANCE_CAST ((obj), NIMF_TYPE_INDICATOR, NimfIndicator))
@@ -48,6 +50,7 @@ struct _NimfIndicator
   gboolean      active;
   AppIndicator *appindicator;
   gchar        *engine_id;
+  guint         watcher_id;
 };
 
 GType nimf_indicator_get_type (void) G_GNUC_CONST;
@@ -100,7 +103,7 @@ on_menu_about (GSimpleAction *action,
     "artists",            artists,
     "authors",            authors,
     "comments",           _("Nimf is an input method framework"),
-    "copyright",          _("Copyright (c) 2015-2018 Hodong Kim"),
+    "copyright",          _("Copyright (c) 2015-2019 Hodong Kim"),
     "documenters",        documenters,
     "license-type",       GTK_LICENSE_LGPL_3_0,
     "logo-icon-name",     "nimf-logo",
@@ -157,19 +160,19 @@ static gboolean nimf_indicator_is_active (NimfService *service)
   return NIMF_INDICATOR (service)->active;
 }
 
-static gboolean nimf_indicator_start (NimfService *service)
+static void
+on_watcher_appeared (GDBusConnection *connection,
+                     const gchar     *name,
+                     const gchar     *name_owner,
+                     gpointer         user_data)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  NimfIndicator *indicator = NIMF_INDICATOR (service);
-
-  if (indicator->active)
-    return TRUE;
-
-  g_setenv ("GTK_IM_MODULE", "gtk-im-context-simple", TRUE);
+  NimfIndicator *indicator = user_data;
+  NimfService   *service   = NIMF_SERVICE (indicator);
 
   if (!gtk_init_check (NULL, NULL))
-    return FALSE;
+    return;
 
   GtkWidget *gtk_menu;
   GMenu     *menu;
@@ -258,12 +261,45 @@ static gboolean nimf_indicator_start (NimfService *service)
   g_object_unref (about_menu);
   g_object_unref (group);
   g_strfreev (engine_ids);
+  g_bus_unwatch_name (indicator->watcher_id);
 
   gtk_widget_show_all (gtk_menu);
 
-  indicator->active = TRUE;
+  /* activate xkb options */
+  XklConfigRec *rec;
+  GSettings    *settings;
+  XklEngine    *engine;
 
-  return TRUE;
+  engine = xkl_engine_get_instance (GDK_DISPLAY_XDISPLAY
+                                      (gdk_display_get_default ()));
+  rec = xkl_config_rec_new ();
+  settings = g_settings_new ("org.nimf.settings");
+
+  xkl_config_rec_get_from_server (rec, engine);
+  g_strfreev (rec->options);
+  rec->options = g_settings_get_strv (settings, "xkb-options");
+  xkl_config_rec_activate (rec, engine);
+
+  g_object_unref (settings);
+  g_object_unref (rec);
+  g_object_unref (engine);
+}
+
+static gboolean nimf_indicator_start (NimfService *service)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  NimfIndicator *indicator = NIMF_INDICATOR (service);
+
+  if (indicator->active)
+    return TRUE;
+
+  indicator->watcher_id = g_bus_watch_name (G_BUS_TYPE_SESSION,
+                                            "org.kde.StatusNotifierWatcher",
+                                            G_BUS_NAME_WATCHER_FLAGS_NONE,
+                                            on_watcher_appeared, NULL,
+                                            indicator, NULL);
+  return indicator->active = TRUE;
 }
 
 static void nimf_indicator_stop (NimfService *service)
@@ -275,7 +311,8 @@ static void nimf_indicator_stop (NimfService *service)
   if (!indicator->active)
     return;
 
-  g_object_unref (NIMF_INDICATOR (service)->appindicator);
+  if (indicator->appindicator)
+    g_object_unref (indicator->appindicator);
 
   indicator->active = FALSE;
 }

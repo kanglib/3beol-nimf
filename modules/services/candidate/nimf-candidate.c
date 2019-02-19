@@ -75,20 +75,22 @@ nimf_candidate_show (NimfCandidatable *candidatable,
 
   GtkRequisition  natural_size;
   int             x, y, w, h;
-  int             screen_width, screen_height;
+  GdkRectangle    geometry;
 
-  #if GTK_CHECK_VERSION (3, 22, 0)
-    GdkRectangle  geometry;
-    GdkDisplay   *display = gtk_widget_get_display (candidate->window);
-    GdkWindow    *window  = gtk_widget_get_window  (candidate->window);
-    GdkMonitor   *monitor = gdk_display_get_monitor_at_window (display, window);
-    gdk_monitor_get_geometry (monitor, &geometry);
-    screen_width  = geometry.width;
-    screen_height = geometry.height;
-  #else
-    screen_width  = gdk_screen_width ();
-    screen_height = gdk_screen_height ();
-  #endif
+#if GTK_CHECK_VERSION (3, 22, 0)
+  GdkDisplay *display = gtk_widget_get_display (candidate->window);
+  GdkMonitor *monitor;
+  monitor = gdk_display_get_monitor_at_point (display,
+                                              target->cursor_area.x,
+                                              target->cursor_area.y);
+  gdk_monitor_get_geometry (monitor, &geometry);
+#else
+  GdkScreen *screen = gtk_widget_get_screen (candidate->window);
+  gint  monitor_num = gdk_screen_get_monitor_at_point (screen,
+                                                       target->cursor_area.x,
+                                                       target->cursor_area.y);
+  gdk_screen_get_monitor_geometry (screen, monitor_num, &geometry);
+#endif
 
   candidate->target = target;
 
@@ -106,10 +108,11 @@ nimf_candidate_show (NimfCandidatable *candidatable,
   x = target->cursor_area.x - target->cursor_area.width;
   y = target->cursor_area.y + target->cursor_area.height;
 
-  if (x + w > screen_width)
-    x = screen_width - w;
+  if (x + w > geometry.x + geometry.width)
+    x = geometry.x + geometry.width - w;
 
-  if (y + h > screen_height)
+  if ((y + h > geometry.y + geometry.height) &&
+      ((target->cursor_area.y - h) >= geometry.y))
     y = target->cursor_area.y - h;
 
   gtk_window_move (GTK_WINDOW (candidate->window), x, y);

@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(nimf, 2018.08.31)
+AC_INIT(nimf, 2019.02.17)
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -21,9 +21,9 @@ AS_IF([test "$CXX" = "g++"],
 AC_ARG_ENABLE([hardening],
   AS_HELP_STRING([--disable-hardening], [Disable hardening]))
 
+EXTRA_CFLAGS="-Wall -Werror"
 AS_IF([test "x$enable_hardening" != "xno"],
-      [EXTRA_CFLAGS="-Wall -Werror -D_FORTIFY_SOURCE=2"],
-      [EXTRA_CFLAGS="-Wall -Werror"])
+      [EXTRA_CFLAGS+=" -D_FORTIFY_SOURCE=2"])
 
 AC_SUBST(EXTRA_CFLAGS)
 
@@ -51,7 +51,7 @@ dnl ***************************************************************************
 #   change to C+1:0:0
 # - If the interface is the same as the previous version, change to C:R+1:A
 
-LIBNIMF_LT_VERSION=0:0:0
+LIBNIMF_LT_VERSION=1:0:0
 AC_SUBST(LIBNIMF_LT_VERSION)
 
 LIBNIMF_REQUIRES="glib-2.0 gio-2.0 gio-unix-2.0 gmodule-2.0"
@@ -59,14 +59,14 @@ AC_SUBST(LIBNIMF_REQUIRES)
 PKG_CHECK_MODULES(LIBNIMF_DEPS, [$LIBNIMF_REQUIRES])
 
 dnl ***************************************************************************
-dnl nimf-chewing  nimf-libhangul  nimf-rime  nimf-system-keyboard
+dnl nimf-libhangul  nimf-m17n  nimf-rime  nimf-system-keyboard
 dnl ***************************************************************************
 
-PKG_CHECK_MODULES(NIMF_CHEWING_DEPS, [chewing $LIBNIMF_REQUIRES])
 PKG_CHECK_MODULES(NIMF_LIBHANGUL_DEPS, [libhangul >= 0.0.12 $LIBNIMF_REQUIRES])
-PKG_CHECK_MODULES(NIMF_RIME_DEPS, [rime >= 1.2.9 $LIBNIMF_REQUIRES])
+PKG_CHECK_MODULES(NIMF_M17N_DEPS,      [m17n-shell          $LIBNIMF_REQUIRES])
+PKG_CHECK_MODULES(NIMF_RIME_DEPS,      [rime >= 1.2.9       $LIBNIMF_REQUIRES])
 PKG_CHECK_MODULES(NIMF_SYSTEM_KEYBOARD_DEPS,
-                  [xkbcommon >= 0.5.0 $LIBNIMF_REQUIRES])
+                                       [xkbcommon >= 0.5.0  $LIBNIMF_REQUIRES])
 
 dnl ***************************************************************************
 dnl nimf-anthy
@@ -79,14 +79,14 @@ AS_IF([test "x$HAVE_ANTHY_DIC" != "xyes"],
       AC_MSG_ERROR([anthy.dic is not found.]))
 
 dnl ***************************************************************************
-dnl  Qt
+dnl im-nimf-qt4  im-nimf-qt5
 dnl ***************************************************************************
 
-PKG_CHECK_MODULES(NIMF_QT4_DEPS, [QtGui], [],
+PKG_CHECK_MODULES(IM_NIMF_QT4_DEPS, [QtGui], [],
   [AC_MSG_ERROR([No package 'QtGui' found.
   If you are using Debian, please install 'libqt4-dev'.])])
 
-PKG_CHECK_MODULES(NIMF_QT5_DEPS, [Qt5Core Qt5Gui Qt5Widgets], [],
+PKG_CHECK_MODULES(IM_NIMF_QT5_DEPS, [Qt5Core Qt5Gui Qt5Widgets], [],
   [AC_MSG_ERROR([Package requirements (Qt5Core Qt5Gui Qt5Widgets) were not met:
   If you are using Debian, please install 'qtbase5-dev'.])])
 
@@ -197,13 +197,14 @@ dnl ***************************************************************************
 dnl nimf server
 dnl ***************************************************************************
 
-PKG_CHECK_MODULES(NIMF_DEPS, [glib-2.0 gio-unix-2.0 gobject-2.0 gmodule-2.0])
+PKG_CHECK_MODULES(NIMF_DEPS, [glib-2.0 gio-2.0 gobject-2.0 gmodule-2.0])
 
 dnl ***************************************************************************
 dnl nimf-indicator
 dnl ***************************************************************************
 
-PKG_CHECK_MODULES(NIMF_INDICATOR_DEPS, [glib-2.0 x11 gtk+-3.0 appindicator3-0.1])
+PKG_CHECK_MODULES(NIMF_INDICATOR_DEPS, [glib-2.0 x11 gtk+-3.0 appindicator3-0.1
+                                        libxklavier gdk-3.0 gdk-x11-3.0])
 
 dnl ***************************************************************************
 dnl nimf-preedit-window  nimf-candidate
@@ -216,7 +217,8 @@ dnl ***************************************************************************
 dnl nimf-settings
 dnl ***************************************************************************
 
-PKG_CHECK_MODULES(NIMF_SETTINGS_DEPS, [gtk+-3.0 gio-2.0 gmodule-2.0])
+PKG_CHECK_MODULES(NIMF_SETTINGS_DEPS,
+                  [gtk+-3.0 gio-2.0 gmodule-2.0 libxklavier gdk-3.0 gdk-x11-3.0])
 
 dnl ***************************************************************************
 dnl im-config data
@@ -255,7 +257,6 @@ AC_OUTPUT([
   bin/Makefile
   data/Makefile
   data/apparmor-abstractions/Makefile
-  data/autostart/Makefile
   data/icons/Makefile
   data/im-config/Makefile
   data/imsettings/Makefile
@@ -268,8 +269,8 @@ AC_OUTPUT([
   modules/clients/qt5/Makefile
   modules/engines/Makefile
   modules/engines/nimf-anthy/Makefile
-  modules/engines/nimf-chewing/Makefile
   modules/engines/nimf-libhangul/Makefile
+  modules/engines/nimf-m17n/Makefile
   modules/engines/nimf-rime/Makefile
   modules/engines/nimf-system-keyboard/Makefile
   modules/services/Makefile

@@ -1,4 +1,4 @@
-SUBDIRS = icons apparmor-abstractions autostart
+SUBDIRS = icons apparmor-abstractions
 
 if WITH_IM_CONFIG_DATA
   SUBDIRS += im-config
@@ -8,4 +8,9 @@ if WITH_IMSETTINGS_DATA
   SUBDIRS += imsettings
 endif
 
-DISTCLEANFILES = Makefile.in
+desktopdir = $(datadir)/applications
+desktop_in_files = nimf-settings.desktop.in
+desktop_DATA = $(desktop_in_files:.desktop.in=.desktop)
+@INTLTOOL_DESKTOP_RULE@
+
+DISTCLEANFILES = Makefile.in nimf-settings.desktop

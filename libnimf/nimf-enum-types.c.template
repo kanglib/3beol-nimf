@@ -15,9 +15,9 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program;  If not, see <http://www.gnu.org/licenses/>.
  */
-#include "nimf-enum-types.h"
+
+#include "nimf-enum-types-private.h"
 #include "nimf-key-syms.h"
-#include "nimf-message.h"
 #include "nimf-types.h"
 
 /*** END file-header ***/

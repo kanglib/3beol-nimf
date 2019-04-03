@@ -1,8 +1,81 @@
-nimf (2019.02.17-1.0~disco0219~3beol) disco; urgency=medium
+nimf (2019.03.31-1.0~disco0403~3beol) disco; urgency=medium
 
   * 3beol libhangul
 
  -- floor <createsc@gmail.com>  Sat, 02 Feb 2013 22:58:35 +0900
+ 
+nimf (2019.03.31) stable; urgency=medium
+
+  * Fixed website address
+  * Fixed the duplicate about dialog
+
+ -- Hodong Kim <cogniti@gmail.com>  Sun, 31 Mar 2019 01:46:52 +0900
+
+nimf (2019.03.27) stable; urgency=medium
+
+  * Added nimf reference manual (closes #266)
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 27 Mar 2019 00:34:01 +0900
+
+nimf (2019.03.17) stable; urgency=medium
+
+  * Fixed how to display the preeditable
+
+ -- Hodong Kim <cogniti@gmail.com>  Sun, 17 Mar 2019 05:15:55 +0900
+
+nimf (2019.03.15) stable; urgency=medium
+
+  * nimf-xim: Fixed input styles (closes #150)
+  * nimf-xim: Fixed a segmentation fault
+
+ -- Hodong Kim <cogniti@gmail.com>  Fri, 15 Mar 2019 22:46:05 +0900
+
+nimf (2019.02.25) stable; urgency=medium
+
+  * Delay the launch of the nimf-indicator until the watcher is ready
+
+ -- Hodong Kim <cogniti@gmail.com>  Mon, 25 Feb 2019 00:40:11 +0900
+
+nimf (2019.02.24) stable; urgency=medium
+
+  * Fixed that the indicator does not appear in MATE (closes #267)
+  * Updated icons
+  * Fixed watcher name
+    Cinnamon doesn't provide "org.kde.StatusNotifierWatcher"
+
+ -- Hodong Kim <cogniti@gmail.com>  Sun, 24 Feb 2019 00:07:52 +0900
+
+nimf (2019.02.23) stable; urgency=medium
+
+  * Added missig nimf_xim_set_engine()
+  * Detached nimf-nim service from nimf-server
+  * Added nimf_server_get_default()
+  * Handle XNSpotLocation (#266)
+  * Added nimf_preeditable_is_visible()
+  * Fixed translator-credits
+  * nimf-anthy: Added submenu
+  * nimf-libhangul: Fixed localization
+
+ -- Hodong Kim <cogniti@gmail.com>  Sat, 23 Feb 2019 00:18:12 +0900
+
+nimf (2019.02.21) stable; urgency=medium
+
+  * Fixed: an unresolvable reference
+
+ -- Hodong Kim <cogniti@gmail.com>  Thu, 21 Feb 2019 00:02:34 +0900
+
+nimf (2019.02.20) stable; urgency=medium
+
+  * Fixed emitting invalid "engine-changed" signal
+  * Display submenu in the indicator
+  * nimf-indicator: Fixed not working on Cinnamon
+  * Added *_set_engine()
+  * Added nimf_connection_set_engine()
+  * Added nimf_engine_set_method()
+  * Added NimfEngineInfo
+  * Fixed changing engine (closes #260)
+
+ -- Hodong Kim <cogniti@gmail.com>  Wed, 20 Feb 2019 23:14:21 +0900
 
 nimf (2019.02.17) stable; urgency=medium
 

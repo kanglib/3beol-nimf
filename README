@@ -6,6 +6,7 @@ Nimf provides:
   * Input Method Server:
     * nimf
   * Language Engines:
+    * System keyboard
     * Chinese (based on librime)
     * Japanese (based on anthy)
     * Korean (based on libhangul)
@@ -13,6 +14,7 @@ Nimf provides:
   * Service Modules:
     * Indicator (based on appindicator)
     * Wayland
+    * NIM (Nimf Input Method)
     * XIM (based on IMdkit)
     * Preedit window
     * Candidate
@@ -158,19 +160,13 @@ Configure
 
       export $(/usr/lib/systemd/user-environment-generators/30-systemd-environment-d-generator)
 
-  * Configure Hangul/Hanja key if you use a keyboard without hardware
-    Hangul/Hanja key
-
-    If you are using xkb-data 2.14 or newer, then select "Right Alt as Hangul,
-    right Ctrl as Hanja" or "Right Ctrl as Hangul, right Alt as Hanja" from
-    gnome-tweak-tool.
-
 
 Debugging
 ---------
 
   nimf --debug
-  tail -f /var/log/daemon.log
+  nimf-settings --gapplication-service & # for nimf-indicator
+  tail -f /var/log/daemon.log # or /var/log/syslog
 
   export GTK_IM_MODULE="nimf"
   export QT4_IM_MODULE="nimf"

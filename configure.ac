@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(nimf, 2019.02.17)
+AC_INIT(nimf, 2019.03.31)
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -194,6 +194,12 @@ dnl ***************************************************************************
 PKG_CHECK_MODULES(NIMF_XIM_DEPS, [$LIBNIMF_REQUIRES] x11)
 
 dnl ***************************************************************************
+dnl nimf-nim
+dnl ***************************************************************************
+
+PKG_CHECK_MODULES(NIMF_NIM_DEPS, [$LIBNIMF_REQUIRES] glib-2.0 gio-2.0)
+
+dnl ***************************************************************************
 dnl nimf server
 dnl ***************************************************************************
 
@@ -203,8 +209,9 @@ dnl ***************************************************************************
 dnl nimf-indicator
 dnl ***************************************************************************
 
-PKG_CHECK_MODULES(NIMF_INDICATOR_DEPS, [glib-2.0 x11 gtk+-3.0 appindicator3-0.1
-                                        libxklavier gdk-3.0 gdk-x11-3.0])
+PKG_CHECK_MODULES(NIMF_INDICATOR_DEPS,
+                  [glib-2.0 x11 gtk+-3.0 appindicator3-0.1 libxklavier gdk-3.0
+                   gdk-x11-3.0 gmodule-2.0])
 
 dnl ***************************************************************************
 dnl nimf-preedit-window  nimf-candidate
@@ -243,10 +250,10 @@ AM_CONDITIONAL([WITH_IMSETTINGS_DATA],
                [test "$with_imsettings_data" = "yes"])
 
 dnl ***************************************************************************
-dnl test-nimf
+dnl Check for gtk-doc
 dnl ***************************************************************************
 
-PKG_CHECK_MODULES(TEST_NIMF_DEPS, [glib-2.0])
+GTK_DOC_CHECK([1.14],[--flavour no-tmpl])
 
 dnl ***************************************************************************
 
@@ -255,11 +262,14 @@ GLIB_GSETTINGS
 AC_OUTPUT([
   Makefile
   bin/Makefile
+  bin/nimf/Makefile
+  bin/nimf-settings/Makefile
   data/Makefile
   data/apparmor-abstractions/Makefile
   data/icons/Makefile
   data/im-config/Makefile
   data/imsettings/Makefile
+  docs/Makefile
   libnimf/Makefile
   libnimf/nimf.pc
   modules/Makefile
@@ -276,9 +286,9 @@ AC_OUTPUT([
   modules/services/Makefile
   modules/services/candidate/Makefile
   modules/services/indicator/Makefile
+  modules/services/nim/Makefile
   modules/services/preedit-window/Makefile
   modules/services/wayland/Makefile
   modules/services/xim/Makefile
-  tests/Makefile
   po/Makefile.in
 ])

@@ -1,6 +1,6 @@
 Name:     nimf
 Summary:  An input method framework
-Version:  2019.02.17
+Version:  2019.03.31
 Release:  1%{?dist}
 License:  LGPLv3+
 Group:    User Interface/Desktops
@@ -27,6 +27,7 @@ BuildRequires: libxkbcommon-devel
 BuildRequires: wayland-devel
 BuildRequires: libxklavier-devel
 BuildRequires: m17n-lib-devel
+BuildRequires: gtk-doc
 
 Requires:         im-chooser
 Requires:         anthy
@@ -54,7 +55,7 @@ This package contains development files.
 %setup -q
 
 %build
-./autogen.sh --prefix=/usr --libdir=%{_libdir} --with-imsettings-data
+./autogen.sh --prefix=/usr --libdir=%{_libdir} --with-imsettings-data --enable-gtk-doc
 make %{?_smp_mflags}
 
 %install
@@ -103,12 +104,14 @@ fi
 %{_datadir}/icons/*
 %{_datadir}/locale/*
 %{_datadir}/man/*
+%{_sysconfdir}/xdg/autostart/*
 
 %files devel
+%{_datadir}/gtk-doc/*
 %{_includedir}/*
 %{_libdir}/libnimf.so
 %{_libdir}/pkgconfig/*
 
 %changelog
-* Sun Feb 17 2019 Hodong Kim <cogniti@gmail.com> - 2019.02.17-1
+* Sun Mar 31 2019 Hodong Kim <cogniti@gmail.com> - 2019.03.31-1
 - See https://gitlab.com/nimf-i18n/nimf/blob/master/debian/changelog

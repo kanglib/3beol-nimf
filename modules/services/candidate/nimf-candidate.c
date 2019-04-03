@@ -3,7 +3,7 @@
  * nimf-candidate.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2015-2018 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2015-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -46,7 +46,7 @@ struct _NimfCandidate
   gchar    *id;
   gboolean  active;
 
-  NimfServiceIM *target;
+  NimfServiceIC *target;
   GtkWidget     *window;
   GtkWidget     *entry;
   GtkWidget     *treeview;
@@ -66,29 +66,31 @@ enum
 
 static void
 nimf_candidate_show (NimfCandidatable *candidatable,
-                     NimfServiceIM    *target,
+                     NimfServiceIC    *target,
                      gboolean          show_entry)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   NimfCandidate *candidate = NIMF_CANDIDATE (candidatable);
 
-  GtkRequisition  natural_size;
-  int             x, y, w, h;
-  GdkRectangle    geometry;
+  GtkRequisition       natural_size;
+  int                  x, y, w, h;
+  GdkRectangle         geometry;
+  const NimfRectangle *cursor_area;
+
+  cursor_area = nimf_service_ic_get_cursor_location (target);
 
 #if GTK_CHECK_VERSION (3, 22, 0)
   GdkDisplay *display = gtk_widget_get_display (candidate->window);
   GdkMonitor *monitor;
   monitor = gdk_display_get_monitor_at_point (display,
-                                              target->cursor_area.x,
-                                              target->cursor_area.y);
+                                              cursor_area->x, cursor_area->y);
   gdk_monitor_get_geometry (monitor, &geometry);
 #else
   GdkScreen *screen = gtk_widget_get_screen (candidate->window);
   gint  monitor_num = gdk_screen_get_monitor_at_point (screen,
-                                                       target->cursor_area.x,
-                                                       target->cursor_area.y);
+                                                       cursor_area->x,
+                                                       cursor_area->y);
   gdk_screen_get_monitor_geometry (screen, monitor_num, &geometry);
 #endif
 
@@ -105,15 +107,15 @@ nimf_candidate_show (NimfCandidatable *candidatable,
                      natural_size.width, natural_size.height);
   gtk_window_get_size (GTK_WINDOW (candidate->window), &w, &h);
 
-  x = target->cursor_area.x - target->cursor_area.width;
-  y = target->cursor_area.y + target->cursor_area.height;
+  x = cursor_area->x - cursor_area->width;
+  y = cursor_area->y + cursor_area->height;
 
   if (x + w > geometry.x + geometry.width)
     x = geometry.x + geometry.width - w;
 
   if ((y + h > geometry.y + geometry.height) &&
-      ((target->cursor_area.y - h) >= geometry.y))
-    y = target->cursor_area.y - h;
+      ((cursor_area->y - h) >= geometry.y))
+    y = cursor_area->y - h;
 
   gtk_window_move (GTK_WINDOW (candidate->window), x, y);
 }
@@ -136,7 +138,7 @@ nimf_candidate_is_visible (NimfCandidatable *candidatable)
 
 static void
 nimf_candidate_set_page_values (NimfCandidatable *candidatable,
-                                NimfServiceIM    *target,
+                                NimfServiceIC    *target,
                                 gint              page_index,
                                 gint              n_pages,
                                 gint              page_size)
@@ -160,7 +162,7 @@ nimf_candidate_set_page_values (NimfCandidatable *candidatable,
 
 static void
 nimf_candidate_clear (NimfCandidatable *candidatable,
-                      NimfServiceIM    *target)
+                      NimfServiceIC    *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -175,8 +177,8 @@ nimf_candidate_clear (NimfCandidatable *candidatable,
 
 static void
 nimf_candidate_append (NimfCandidatable *candidatable,
-                       const gchar      *item1,
-                       const gchar      *item2)
+                       const gchar      *text1,
+                       const gchar      *text2)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -192,11 +194,11 @@ nimf_candidate_append (NimfCandidatable *candidatable,
   gtk_list_store_append (GTK_LIST_STORE (model), &iter);
   gtk_list_store_set    (GTK_LIST_STORE (model), &iter,
                          INDEX_COLUMN, (n_row + 1) % 10,
-                         MAIN_COLUMN, item1, -1);
+                         MAIN_COLUMN, text1, -1);
 
-  if (item2)
+  if (text2)
     gtk_list_store_set (GTK_LIST_STORE (model), &iter,
-                        EXTRA_COLUMN, item2, -1);
+                        EXTRA_COLUMN, text2, -1);
 }
 
 static gint
@@ -331,12 +333,13 @@ nimf_candidate_select_previous_item (NimfCandidatable *candidatable)
   else
   {
     NimfEngineClass *engine_class;
-    engine_class = NIMF_ENGINE_GET_CLASS (candidate->target->engine);
+    NimfEngine      *engine;
+    engine = nimf_service_ic_get_engine (candidate->target);
+    engine_class = NIMF_ENGINE_GET_CLASS (engine);
 
     if (engine_class->candidate_page_up)
     {
-      if (engine_class->candidate_page_up (candidate->target->engine,
-                                           candidate->target))
+      if (engine_class->candidate_page_up (engine, candidate->target))
         nimf_candidate_select_last_item_in_page (candidatable);
     }
   }
@@ -369,12 +372,13 @@ nimf_candidate_select_next_item (NimfCandidatable *candidatable)
   else
   {
     NimfEngineClass *engine_class;
-    engine_class = NIMF_ENGINE_GET_CLASS (candidate->target->engine);
+    NimfEngine      *engine;
+    engine = nimf_service_ic_get_engine (candidate->target);
+    engine_class = NIMF_ENGINE_GET_CLASS (engine);
 
     if (engine_class->candidate_page_down)
     {
-      if (engine_class->candidate_page_down (candidate->target->engine,
-                                             candidate->target))
+      if (engine_class->candidate_page_down (engine, candidate->target))
         nimf_candidate_select_first_item_in_page (candidatable);
     }
   }
@@ -446,11 +450,13 @@ on_tree_view_row_activated (GtkTreeView       *tree_view,
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   NimfEngineClass *engine_class;
+  NimfEngine      *engine;
 
-  g_return_if_fail (candidate->target &&
-                    NIMF_IS_ENGINE (candidate->target->engine));
+  engine = nimf_service_ic_get_engine (candidate->target);
 
-  engine_class = NIMF_ENGINE_GET_CLASS (candidate->target->engine);
+  g_return_if_fail (candidate->target && NIMF_IS_ENGINE (engine));
+
+  engine_class = NIMF_ENGINE_GET_CLASS (engine);
 
   gchar *text;
   gint  *indices = gtk_tree_path_get_indices (path);
@@ -458,7 +464,7 @@ on_tree_view_row_activated (GtkTreeView       *tree_view,
   text = nimf_candidate_get_selected_text (NIMF_CANDIDATABLE (candidate));
 
   if (engine_class->candidate_clicked)
-    engine_class->candidate_clicked (candidate->target->engine,
+    engine_class->candidate_clicked (engine,
                                      candidate->target, text, indices[0]);
   g_free (text);
 }
@@ -471,8 +477,9 @@ on_range_change_value (GtkRange      *range,
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  g_return_val_if_fail (candidate->target &&
-                        NIMF_IS_ENGINE (candidate->target->engine), FALSE);
+  NimfEngine *engine = nimf_service_ic_get_engine (candidate->target);
+
+  g_return_val_if_fail (candidate->target && NIMF_IS_ENGINE (engine), FALSE);
 
   NimfEngineClass *engine_class;
   GtkAdjustment   *adjustment;
@@ -487,11 +494,11 @@ on_range_change_value (GtkRange      *range,
   if (value > upper - 1)
     value = upper - 1;
 
-  engine_class = NIMF_ENGINE_GET_CLASS (candidate->target->engine);
+  engine_class = NIMF_ENGINE_GET_CLASS (engine);
 
   if (engine_class->candidate_scrolled)
-    engine_class->candidate_scrolled (candidate->target->engine,
-                                      candidate->target, value);
+    engine_class->candidate_scrolled (engine, candidate->target, value);
+
   return FALSE;
 }
 

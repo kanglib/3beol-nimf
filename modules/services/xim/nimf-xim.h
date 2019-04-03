@@ -3,7 +3,7 @@
  * nimf-xim.h
  * This file is part of Nimf.
  *
- * Copyright (C) 2015-2018 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2015-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -27,7 +27,7 @@
 #include <glib/gi18n.h>
 #include <X11/XKBlib.h>
 #include "IMdkit/Xi18n.h"
-#include "nimf-xim-im.h"
+#include "nimf-xim-ic.h"
 
 G_BEGIN_DECLS
 
@@ -47,10 +47,10 @@ struct _NimfXim
 
   GSource    *xevent_source;
   gchar      *id;
-  GHashTable *ims;
+  GHashTable *ics;
   guint16     next_icid;
+  guint16     last_focused_icid;
   XIMS        xims;
-  GSettings  *settings;
   gboolean    active;
 
   Display *display;

@@ -59,11 +59,11 @@ struct _NimfM17nClass
 
 G_DEFINE_DYNAMIC_TYPE (NimfM17n, nimf_m17n, NIMF_TYPE_ENGINE);
 
-static NimfServiceIM *nimf_service_im_target = NULL;
+static NimfServiceIC *nimf_service_im_target = NULL;
 
 static void
 nimf_m17n_update_preedit (NimfEngine    *engine,
-                          NimfServiceIM *target,
+                          NimfServiceIC *target,
                           gchar         *new_preedit)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
@@ -102,7 +102,7 @@ nimf_m17n_update_preedit (NimfEngine    *engine,
 
 void
 nimf_m17n_reset (NimfEngine    *engine,
-                 NimfServiceIM *target)
+                 NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -118,7 +118,7 @@ nimf_m17n_reset (NimfEngine    *engine,
 
 void
 nimf_m17n_focus_in (NimfEngine    *engine,
-                    NimfServiceIM *target)
+                    NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -127,7 +127,7 @@ nimf_m17n_focus_in (NimfEngine    *engine,
 
 void
 nimf_m17n_focus_out (NimfEngine    *engine,
-                     NimfServiceIM *target)
+                     NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -156,7 +156,7 @@ nimf_m17n_mtext_to_utf8 (NimfM17n *m17n, MText *mt)
 
 static void
 nimf_m17n_update_candidate (NimfEngine    *engine,
-                            NimfServiceIM *target)
+                            NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -240,7 +240,7 @@ nimf_m17n_page_down (NimfM17n *m17n)
 
 gboolean
 nimf_m17n_filter_event (NimfEngine    *engine,
-                        NimfServiceIM *target,
+                        NimfServiceIC *target,
                         NimfEvent     *event)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
@@ -586,12 +586,12 @@ nimf_m17n_init (NimfM17n *m17n)
 
   m17n->id       = g_strdup ("nimf-m17n");
   m17n->settings = g_settings_new ("org.nimf.engines.nimf-m17n");
-  m17n->method   = g_settings_get_string (m17n->settings, "get-input-methods");
+  m17n->method   = g_settings_get_string (m17n->settings, "get-method-infos");
   m17n->preedit_attrs = g_malloc_n (2, sizeof (NimfPreeditAttr *));
 
   nimf_m17n_open_im (m17n);
 
-  g_signal_connect (m17n->settings, "changed::get-input-methods",
+  g_signal_connect (m17n->settings, "changed::get-method-infos",
                     G_CALLBACK (on_changed_method), m17n);
 }
 
@@ -632,6 +632,15 @@ nimf_m17n_get_icon_name (NimfEngine *engine)
   return NIMF_M17N (engine)->id;
 }
 
+void
+nimf_m17n_set_method (NimfEngine *engine, const gchar *method_id)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  g_settings_set_string (NIMF_M17N (engine)->settings,
+                         "get-method-infos", method_id);
+}
+
 static void
 nimf_m17n_constructed (GObject *object)
 {
@@ -657,6 +666,7 @@ nimf_m17n_class_init (NimfM17nClass *class)
 
   engine_class->get_id        = nimf_m17n_get_id;
   engine_class->get_icon_name = nimf_m17n_get_icon_name;
+  engine_class->set_method    = nimf_m17n_set_method;
 
   object_class->constructed = nimf_m17n_constructed;
   object_class->finalize    = nimf_m17n_finalize;
@@ -732,6 +742,7 @@ static const Country country[] = {
   {"te",  N_("Telugu")},
   {"th",  N_("Thai")},
   {"t",   N_("Etc")},
+  {"ua",  N_("Ukrainian")},
   {"ug",  N_("Uighur")},
   {"uk",  N_("Ukrainian")},
   {"ur",  N_("Urdu")},
@@ -741,12 +752,31 @@ static const Country country[] = {
   {"zh",  N_("Chinese")}
 };
 
-gchar **
-nimf_m17n_get_input_methods ()
+gint
+on_sort (gconstpointer a,
+         gconstpointer b)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  gchar **methods;
+  gint retval;
+
+  const NimfMethodInfo *info1 = *(NimfMethodInfo **) a;
+  const NimfMethodInfo *info2 = *(NimfMethodInfo **) b;
+
+  retval = g_strcmp0 (info1->group, info2->group);
+
+  if (retval == 0)
+    retval = g_strcmp0 (info1->method_id, info2->method_id);
+
+  return retval;
+}
+
+NimfMethodInfo **
+nimf_m17n_get_method_infos ()
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  NimfMethodInfo *info;
   GHashTable *table;
   MPlist *imlist, *pl;
   gint i;
@@ -757,10 +787,9 @@ nimf_m17n_get_input_methods ()
     g_hash_table_insert (table, (gpointer) country[i].code,
                                 (gpointer) gettext (country[i].name));
 
-  methods = g_malloc0_n (1, sizeof (gchar *));
+  GPtrArray *array = g_ptr_array_new ();
   imlist = minput_list (Mnil);
 
-  i = 0;
   for (pl = imlist; mplist_key (pl) != Mnil; pl = mplist_next (pl))
   {
     MPlist *p = mplist_value (pl);
@@ -775,23 +804,28 @@ nimf_m17n_get_input_methods ()
     if (sane == Mt)
     {
       const gchar *code = msymbol_name (lang);
-      const gchar *language = g_hash_table_lookup (table, code);
+      const gchar *group = g_hash_table_lookup (table, code);
 
-      if (!language)
-        language = code;
+      if (!group)
+        group = code;
 
-      methods[i] = g_strjoin (":", language, code, msymbol_name (name), NULL);
-      methods = g_realloc_n (methods, sizeof (gchar *), i + 2);
-      methods[i + 1] = NULL;
-      i++;
+      info = nimf_method_info_new ();
+      info->method_id = g_strdup_printf ("%s:%s", code, msymbol_name (name));
+      info->label     = g_strdup_printf ("%s (%s)", group, msymbol_name (name));
+      info->group     = g_strdup (group);
+
+      g_ptr_array_add (array, info);
     }
   }
+
+  g_ptr_array_sort (array, on_sort);
+  g_ptr_array_add (array, NULL);
 
   m17n_object_unref (imlist);
   g_hash_table_destroy (table);
   M17N_FINI();
 
-  return methods;
+  return (NimfMethodInfo **) g_ptr_array_free (array, FALSE);
 }
 
 void module_register_type (GTypeModule *type_module)

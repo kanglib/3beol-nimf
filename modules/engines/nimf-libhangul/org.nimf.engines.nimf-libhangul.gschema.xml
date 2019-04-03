@@ -12,10 +12,10 @@
       <summary>Active engine</summary>
       <description>The engine will be loaded on startup if available. Restart required</description>
     </key>
-    <key type="s" name="layout">
+    <key type="s" name="get-method-infos">
       <default>'2'</default>
-      <summary>Korean keyboard layout</summary>
-      <description>Korean keyboard layout</description>
+      <summary>Input method</summary>
+      <description>Input method</description>
     </key>
     <key type="as" name="trigger-keys">
       <default>['Hangul']</default>

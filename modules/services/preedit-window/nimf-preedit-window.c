@@ -3,7 +3,7 @@
  * nimf-preedit-window.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2017,2018 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2017-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -101,13 +101,23 @@ static void nimf_preedit_window_hide (NimfPreeditable *preeditable)
   gtk_widget_hide (NIMF_PREEDIT_WINDOW (preeditable)->window);
 }
 
-static void nimf_preedit_window_set_text (NimfPreeditable *preeditable,
-                                          const gchar     *text)
+static gboolean nimf_preedit_window_is_visible (NimfPreeditable *preeditable)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  GtkWidget *entry = NIMF_PREEDIT_WINDOW (preeditable)->entry;
-  gtk_entry_set_text (GTK_ENTRY (entry), text);
+  return gtk_widget_is_visible (NIMF_PREEDIT_WINDOW (preeditable)->window);
+}
+
+static void nimf_preedit_window_set_text (NimfPreeditable *preeditable,
+                                          const gchar     *text,
+                                          gint             cursor_pos)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  GtkEntry *entry = GTK_ENTRY (NIMF_PREEDIT_WINDOW (preeditable)->entry);
+  gtk_entry_set_text        (entry, text);
+  gtk_editable_set_position (GTK_EDITABLE (entry), cursor_pos);
+  gtk_entry_set_width_chars (entry, g_utf8_strlen (text, -1) * 2);
 }
 
 static void
@@ -125,6 +135,7 @@ nimf_preedit_window_iface_init (NimfPreeditableInterface *iface)
 {
   iface->show                = nimf_preedit_window_show;
   iface->hide                = nimf_preedit_window_hide;
+  iface->is_visible          = nimf_preedit_window_is_visible;
   iface->set_text            = nimf_preedit_window_set_text;
   iface->set_cursor_location = nimf_preedit_window_set_cursor_location;
 }
@@ -153,6 +164,31 @@ static gboolean nimf_preedit_window_is_active (NimfService *service)
   return NIMF_PREEDIT_WINDOW (service)->active;
 }
 
+static gboolean
+on_entry_draw (GtkWidget *widget,
+               cairo_t   *cr,
+               gpointer   user_data)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  GtkStyleContext *style_context;
+  PangoContext    *pango_context;
+  PangoLayout     *layout;
+  const char      *text;
+  gint             cursor_index;
+  gint             x, y;
+
+  style_context = gtk_widget_get_style_context (widget);
+  pango_context = gtk_widget_get_pango_context (widget);
+  layout = gtk_entry_get_layout (GTK_ENTRY (widget));
+  text = pango_layout_get_text (layout);
+  gtk_entry_get_layout_offsets (GTK_ENTRY (widget), &x, &y);
+  cursor_index = g_utf8_offset_to_pointer (text, gtk_editable_get_position (GTK_EDITABLE (widget))) - text;
+  gtk_render_insertion_cursor (style_context, cr, x, y, layout, cursor_index,
+                               pango_context_get_base_dir (pango_context));
+  return FALSE;
+}
+
 static gboolean nimf_preedit_window_start (NimfService *service)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
@@ -167,6 +203,8 @@ static gboolean nimf_preedit_window_start (NimfService *service)
 
   preedit_window->entry = gtk_entry_new ();
   gtk_editable_set_editable (GTK_EDITABLE (preedit_window->entry), FALSE);
+  g_signal_connect_after (preedit_window->entry, "draw",
+                          G_CALLBACK (on_entry_draw), NULL);
   /* gtk window */
   preedit_window->window = gtk_window_new (GTK_WINDOW_POPUP);
   gtk_window_set_type_hint (GTK_WINDOW (preedit_window->window),

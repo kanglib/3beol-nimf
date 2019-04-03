@@ -4,7 +4,7 @@
  * This file is part of Nimf.
  *
  * Copyright (C) 2012 Intel Corporation
- * Copyright (C) 2017,2018 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2017-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,7 @@
  */
 
 #include "config.h"
-#include "nimf-wayland-im.h"
+#include "nimf-wayland-ic.h"
 #include "nimf-wayland.h"
 #include "nimf-service.h"
 
@@ -354,7 +354,7 @@ input_method_keyboard_key (void *data,
   event->key.keyval = sym;
   event->key.hardware_keycode = code;
 
-  if (!nimf_service_im_filter_event (NIMF_SERVICE_IM (wayland->im), event))
+  if (!nimf_service_ic_filter_event (NIMF_SERVICE_IC (wayland->wic), event))
     zwp_input_method_context_v1_key (wayland->context, serial, time, key, state);
 
   nimf_event_free (event);
@@ -452,7 +452,7 @@ input_method_deactivate (void *data,
   if (!wayland->context)
     return;
 
-  nimf_service_im_reset (NIMF_SERVICE_IM (wayland->im));
+  nimf_service_ic_reset (NIMF_SERVICE_IC (wayland->wic));
   zwp_input_method_context_v1_destroy (wayland->context);
   wayland->context = NULL;
 }
@@ -538,7 +538,7 @@ static gboolean nimf_wayland_start (NimfService *service)
     return FALSE;
   }
 
-  wayland->im = nimf_wayland_im_new (NIMF_SERVICE (wayland)->server, wayland);
+  wayland->wic = nimf_wayland_ic_new (wayland);
   wayland->context = NULL;
   wayland->event_source = nimf_wayland_source_new (wayland);
   g_source_attach (wayland->event_source, NULL);
@@ -578,8 +578,8 @@ nimf_wayland_finalize (GObject *object)
 
   g_free (wayland->id);
 
-  if (wayland->im)
-    g_object_unref (wayland->im);
+  if (wayland->wic)
+    g_object_unref (wayland->wic);
 
   G_OBJECT_CLASS (nimf_wayland_parent_class)->finalize (object);
 }

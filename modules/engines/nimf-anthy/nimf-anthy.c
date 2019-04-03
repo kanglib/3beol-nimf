@@ -3,7 +3,7 @@
  * nimf-anthy.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2016-2018 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2016-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -49,8 +49,8 @@ struct _NimfAnthy
   GSettings         *settings;
   NimfKey          **hiragana_keys;
   NimfKey          **katakana_keys;
-  gchar             *input_mode;
-  gboolean           input_mode_changed;
+  gchar             *method;
+  gboolean           method_changed;
   gint               n_input_mode;
 
   anthy_context_t  context;
@@ -80,7 +80,7 @@ G_DEFINE_DYNAMIC_TYPE (NimfAnthy, nimf_anthy, NIMF_TYPE_ENGINE);
 
 static void
 nimf_anthy_update_preedit_state (NimfEngine    *engine,
-                                 NimfServiceIM *target,
+                                 NimfServiceIC *target,
                                  const gchar   *new_preedit,
                                  gint           cursor_pos)
 {
@@ -98,6 +98,12 @@ nimf_anthy_update_preedit_state (NimfEngine    *engine,
   nimf_engine_emit_preedit_changed (engine, target, new_preedit,
                                     anthy->preedit_attrs, cursor_pos);
 
+  if (!nimf_service_ic_get_use_preedit (target))
+    nimf_candidatable_set_auxiliary_text (anthy->candidatable,
+                                          anthy->preedit->str,
+                                          g_utf8_strlen (anthy->preedit->str,
+                                                         anthy->preedit_offset + anthy->preedit_dx));
+
   if (anthy->preedit_state == NIMF_PREEDIT_STATE_START &&
       anthy->preedit->len == 0)
   {
@@ -108,7 +114,7 @@ nimf_anthy_update_preedit_state (NimfEngine    *engine,
 
 static void
 nimf_anthy_emit_commit (NimfEngine    *engine,
-                        NimfServiceIM *target)
+                        NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -137,7 +143,7 @@ nimf_anthy_emit_commit (NimfEngine    *engine,
 
 void
 nimf_anthy_reset (NimfEngine    *engine,
-                  NimfServiceIM *target)
+                  NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -153,14 +159,14 @@ nimf_anthy_reset (NimfEngine    *engine,
 
 void
 nimf_anthy_focus_in (NimfEngine    *engine,
-                     NimfServiceIM *target)
+                     NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 }
 
 void
 nimf_anthy_focus_out (NimfEngine    *engine,
-                      NimfServiceIM *target)
+                      NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -178,7 +184,7 @@ nimf_anthy_get_current_page (NimfEngine *engine)
 
 static void
 nimf_anthy_convert_preedit_text (NimfEngine    *engine,
-                                 NimfServiceIM *target)
+                                 NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -221,7 +227,7 @@ nimf_anthy_convert_preedit_text (NimfEngine    *engine,
 
 static void
 nimf_anthy_update_preedit_text (NimfEngine    *engine,
-                                NimfServiceIM *target)
+                                NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -238,7 +244,7 @@ nimf_anthy_update_preedit_text (NimfEngine    *engine,
 
 static void
 nimf_anthy_update_page (NimfEngine    *engine,
-                        NimfServiceIM *target)
+                        NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -270,7 +276,7 @@ nimf_anthy_update_page (NimfEngine    *engine,
 
 static void
 on_candidate_clicked (NimfEngine    *engine,
-                      NimfServiceIM *target,
+                      NimfServiceIC *target,
                       gchar         *text,
                       gint           index)
 {
@@ -283,7 +289,7 @@ on_candidate_clicked (NimfEngine    *engine,
 }
 
 static void
-nimf_anthy_page_end (NimfEngine *engine, NimfServiceIM *target)
+nimf_anthy_page_end (NimfEngine *engine, NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -301,7 +307,7 @@ nimf_anthy_page_end (NimfEngine *engine, NimfServiceIM *target)
 }
 
 static gboolean
-nimf_anthy_page_up (NimfEngine *engine, NimfServiceIM *target)
+nimf_anthy_page_up (NimfEngine *engine, NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -321,7 +327,7 @@ nimf_anthy_page_up (NimfEngine *engine, NimfServiceIM *target)
 }
 
 static void
-nimf_anthy_page_home (NimfEngine *engine, NimfServiceIM *target)
+nimf_anthy_page_home (NimfEngine *engine, NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -339,7 +345,7 @@ nimf_anthy_page_home (NimfEngine *engine, NimfServiceIM *target)
 }
 
 static gboolean
-nimf_anthy_page_down (NimfEngine *engine, NimfServiceIM *target)
+nimf_anthy_page_down (NimfEngine *engine, NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -360,7 +366,7 @@ nimf_anthy_page_down (NimfEngine *engine, NimfServiceIM *target)
 
 static void
 on_candidate_scrolled (NimfEngine    *engine,
-                       NimfServiceIM *target,
+                       NimfServiceIC *target,
                        gdouble        value)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
@@ -385,7 +391,7 @@ on_candidate_scrolled (NimfEngine    *engine,
 
 static void
 nimf_anthy_update_candidate (NimfEngine    *engine,
-                             NimfServiceIM *target)
+                             NimfServiceIC *target)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -413,7 +419,7 @@ nimf_anthy_update_candidate (NimfEngine    *engine,
 
 static gboolean
 nimf_anthy_filter_event_romaji (NimfEngine    *engine,
-                                NimfServiceIM *target,
+                                NimfServiceIC *target,
                                 NimfEvent     *event)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
@@ -504,7 +510,7 @@ nimf_anthy_preedit_offset_has_suffix (NimfAnthy *anthy, const gchar *suffix)
 
 static gboolean
 nimf_anthy_filter_event_pc104 (NimfEngine    *engine,
-                               NimfServiceIM *target,
+                               NimfServiceIC *target,
                                NimfEvent     *event)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
@@ -749,7 +755,7 @@ nimf_anthy_replace_last_n (NimfAnthy *anthy)
 
 static gboolean
 nimf_anthy_filter_event (NimfEngine    *engine,
-                         NimfServiceIM *target,
+                         NimfServiceIC *target,
                          NimfEvent     *event)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
@@ -760,10 +766,10 @@ nimf_anthy_filter_event (NimfEngine    *engine,
   if (event->key.type == NIMF_EVENT_KEY_RELEASE)
     return FALSE;
 
-  if (anthy->input_mode_changed)
+  if (anthy->method_changed)
   {
     nimf_anthy_reset (engine, target);
-    anthy->input_mode_changed = FALSE;
+    anthy->method_changed = FALSE;
   }
 
   if (nimf_candidatable_is_visible (anthy->candidatable))
@@ -864,7 +870,7 @@ nimf_anthy_filter_event (NimfEngine    *engine,
       case NIMF_KEY_KP_8:
       case NIMF_KEY_KP_9:
         {
-          if (g_strcmp0 (anthy->input_mode,"romaji"))
+          if (g_strcmp0 (anthy->method,"romaji"))
             break;
 
           if (anthy->current_page < 1)
@@ -955,7 +961,8 @@ nimf_anthy_filter_event (NimfEngine    *engine,
     if (anthy->preedit->len > 0)
     {
       if (!nimf_candidatable_is_visible (anthy->candidatable))
-        nimf_candidatable_show (anthy->candidatable, target, FALSE);
+        nimf_candidatable_show (anthy->candidatable, target,
+                                !nimf_service_ic_get_use_preedit (target));
 
       anthy->current_segment = 0;
       nimf_anthy_convert_preedit_text (engine, target);
@@ -1072,7 +1079,7 @@ nimf_anthy_filter_event (NimfEngine    *engine,
   }
   else if (event->key.keyval > 127)
     retval = FALSE;
-  else if (g_strcmp0 (anthy->input_mode, "romaji") == 0)
+  else if (g_strcmp0 (anthy->method, "romaji") == 0)
     retval = nimf_anthy_filter_event_romaji (engine, target, event);
   else
     retval = nimf_anthy_filter_event_pc104 (engine, target, event);
@@ -1115,9 +1122,9 @@ on_changed_method (GSettings *settings,
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  g_free (anthy->input_mode);
-  anthy->input_mode = g_settings_get_string (settings, key);
-  anthy->input_mode_changed = TRUE;
+  g_free (anthy->method);
+  anthy->method = g_settings_get_string (settings, key);
+  anthy->method_changed = TRUE;
 }
 
 static gint
@@ -1128,7 +1135,7 @@ nimf_anthy_get_n_input_mode (NimfAnthy *anthy)
   gchar *mode;
   gint   retval;
 
-  mode = g_settings_get_string (anthy->settings, "n-input-mode");
+  mode = g_settings_get_string (anthy->settings, "get-n-input-mode-list");
 
   if (g_strcmp0 (mode, "common") == 0)
     retval = COMMON;
@@ -1539,8 +1546,8 @@ nimf_anthy_init (NimfAnthy *anthy)
   nimf_anthy_ref_count++;
   anthy_context_set_encoding (anthy->context, ANTHY_UTF8_ENCODING);
 
-  anthy->settings     = g_settings_new ("org.nimf.engines.nimf-anthy");
-  anthy->input_mode   = g_settings_get_string (anthy->settings, "input-mode");
+  anthy->settings = g_settings_new ("org.nimf.engines.nimf-anthy");
+  anthy->method   = g_settings_get_string (anthy->settings, "get-method-infos");
   anthy->n_input_mode = nimf_anthy_get_n_input_mode (anthy);
   hiragana_keys = g_settings_get_strv   (anthy->settings, "hiragana-keys");
   katakana_keys = g_settings_get_strv   (anthy->settings, "katakana-keys");
@@ -1554,9 +1561,9 @@ nimf_anthy_init (NimfAnthy *anthy)
                     G_CALLBACK (on_changed_keys), anthy);
   g_signal_connect (anthy->settings, "changed::katakana-keys",
                     G_CALLBACK (on_changed_keys), anthy);
-  g_signal_connect (anthy->settings, "changed::input-mode",
+  g_signal_connect (anthy->settings, "changed::get-method-infos",
                     G_CALLBACK (on_changed_method), anthy);
-  g_signal_connect (anthy->settings, "changed::n-input-mode",
+  g_signal_connect (anthy->settings, "changed::get-n-input-mode-list",
                     G_CALLBACK (on_changed_n_input_mode), anthy);
 }
 
@@ -1574,7 +1581,7 @@ nimf_anthy_finalize (GObject *object)
   g_string_free (anthy->preedit, TRUE);
   nimf_key_freev (anthy->hiragana_keys);
   nimf_key_freev (anthy->katakana_keys);
-  g_free (anthy->input_mode);
+  g_free (anthy->method);
   g_object_unref (anthy->settings);
 
   if (--nimf_anthy_ref_count == 0)
@@ -1606,6 +1613,15 @@ nimf_anthy_get_icon_name (NimfEngine *engine)
   return NIMF_ANTHY (engine)->id;
 }
 
+void
+nimf_anthy_set_method (NimfEngine *engine, const gchar *method_id)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  g_settings_set_string (NIMF_ANTHY (engine)->settings,
+                         "get-method-infos", method_id);
+}
+
 static void
 nimf_anthy_constructed (GObject *object)
 {
@@ -1634,8 +1650,9 @@ nimf_anthy_class_init (NimfAnthyClass *class)
   engine_class->candidate_clicked   = on_candidate_clicked;
   engine_class->candidate_scrolled  = on_candidate_scrolled;
 
-  engine_class->get_id             = nimf_anthy_get_id;
-  engine_class->get_icon_name      = nimf_anthy_get_icon_name;
+  engine_class->get_id        = nimf_anthy_get_id;
+  engine_class->get_icon_name = nimf_anthy_get_icon_name;
+  engine_class->set_method    = nimf_anthy_set_method;
 
   object_class->constructed = nimf_anthy_constructed;
   object_class->finalize    = nimf_anthy_finalize;
@@ -1645,6 +1662,69 @@ static void
 nimf_anthy_class_finalize (NimfAnthyClass *class)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
+}
+
+typedef struct {
+  const gchar *id;
+  const gchar *name;
+} Method;
+
+static const Method methods[] = {
+  {"romaji", N_("Romaji")},
+  {"pc104",  N_("English Keyboard (pc104)")}
+};
+
+NimfMethodInfo **
+nimf_anthy_get_method_infos ()
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  NimfMethodInfo **infos;
+  gint             n_methods = G_N_ELEMENTS (methods);
+  gint             i;
+
+  infos = g_malloc (sizeof (NimfMethodInfo *) * n_methods + 1);
+
+  for (i = 0; i < n_methods; i++)
+  {
+    infos[i] = nimf_method_info_new ();
+    infos[i]->method_id = g_strdup (methods[i].id);
+    infos[i]->label     = g_strdup (gettext (methods[i].name));
+    infos[i]->group     = NULL;
+  }
+
+  infos[n_methods] = NULL;
+
+  return infos;
+}
+
+static const Method modes[] = {
+  {"common",   N_("Common practice")},
+  {"explicit", N_("Explicitly type nn")}
+};
+
+NimfMethodInfo **
+nimf_anthy_get_n_input_mode_list ()
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  NimfMethodInfo **infos;
+  gint             n_methods = G_N_ELEMENTS (modes);
+  gint             i;
+
+  infos = g_malloc (sizeof (NimfMethodInfo *) * n_methods + 1);
+
+  for (i = 0; i < n_methods; i++)
+  {
+    infos[i] = nimf_method_info_new ();
+    infos[i]->method_id = g_strdup (modes[i].id);
+    infos[i]->label     = g_strdup (gettext (modes[i].name));
+    infos[i]->group     = NULL;
+  }
+
+  infos[n_methods] = NULL;
+
+  return infos;
 }
 
 void

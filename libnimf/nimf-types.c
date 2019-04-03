@@ -3,7 +3,7 @@
  * nimf-types.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2015,2016 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2015-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -20,10 +20,21 @@
  */
 
 #include "nimf-types.h"
-#include "nimf-enum-types.h"
+#include "nimf-enum-types-private.h"
 
-G_DEFINE_QUARK (nimf-error-quark, nimf_error)
+/**
+ * SECTION:nimf-types
+ * @title: Types
+ * @section_id: nimf-types
+ */
 
+/**
+ * nimf_key_new:
+ *
+ * Creates a new #NimfKey. All fields are set to 0.
+ *
+ * Return: a new #NimfKey, which should be freed with nimf_key_free().
+ */
 NimfKey *
 nimf_key_new ()
 {
@@ -32,6 +43,12 @@ nimf_key_new ()
   return g_slice_new0 (NimfKey);
 }
 
+/**
+ * nimf_key_new_from_nicks:
+ * @nicks: an array of gchar
+ *
+ * Return: a new #NimfKey, which should be freed with nimf_key_free().
+ */
 NimfKey *
 nimf_key_new_from_nicks (const gchar **nicks)
 {
@@ -51,7 +68,7 @@ nimf_key_new_from_nicks (const gchar **nicks)
       flags_value = g_flags_get_value_by_nick (flags_class, nicks[i]);
 
       if (flags_value)
-        key->mods |= flags_value->value;
+        key->state |= flags_value->value;
       else
         g_warning ("NimfModifierType doesn't have a member with that nickname: %s", nicks[i]);
     }
@@ -72,7 +89,17 @@ nimf_key_new_from_nicks (const gchar **nicks)
   return key;
 }
 
-NimfKey **nimf_key_newv (const gchar **keys)
+/**
+ * nimf_key_newv:
+ * @keys: an array of gchar
+ *
+ * Creates a new array of #NimfKey.
+ *
+ * Returns: a new array of #NimfKey, which should be freed with
+ *   nimf_key_freev().
+ */
+NimfKey **
+nimf_key_newv (const gchar **keys)
 {
   NimfKey **nimf_keys = g_malloc0_n (1, sizeof (NimfKey *));
 
@@ -91,6 +118,12 @@ NimfKey **nimf_key_newv (const gchar **keys)
   return nimf_keys;
 }
 
+/**
+ * nimf_key_freev:
+ * @keys: an array of #NimfKey
+ *
+ * Frees an array of @keys
+ */
 void
 nimf_key_freev (NimfKey **keys)
 {
@@ -106,6 +139,12 @@ nimf_key_freev (NimfKey **keys)
   }
 }
 
+/**
+ * nimf_key_free:
+ * @key: a #NimfKey
+ *
+ * Frees a @key
+ */
 void
 nimf_key_free (NimfKey *key)
 {
@@ -116,9 +155,20 @@ nimf_key_free (NimfKey *key)
   g_slice_free (NimfKey, key);
 }
 
-NimfPreeditAttr *nimf_preedit_attr_new (NimfPreeditAttrType type,
-                                        guint               start_index,
-                                        guint               end_index)
+/**
+ * nimf_preedit_attr_new:
+ * @type: a #NimfPreeditAttrType
+ * @start_index: start index in characters
+ * @end_index: end index in characters; The character at this index is not
+ *   included.
+ *
+ * Returns: a new #NimfPreeditAttr, which should be freed with
+ *   nimf_preedit_attr_free().
+ */
+NimfPreeditAttr *
+nimf_preedit_attr_new (NimfPreeditAttrType type,
+                       guint               start_index,
+                       guint               end_index)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -132,7 +182,15 @@ NimfPreeditAttr *nimf_preedit_attr_new (NimfPreeditAttrType type,
   return attr;
 }
 
-NimfPreeditAttr **nimf_preedit_attrs_copy (NimfPreeditAttr **attrs)
+/**
+ * nimf_preedit_attrs_copy:
+ * @attrs: an array of #NimfPreeditAttr
+ *
+ * Returns: a new array of #NimfPreeditAttr, which should be freed with
+ *   nimf_preedit_attr_freev().
+ */
+NimfPreeditAttr **
+nimf_preedit_attrs_copy (NimfPreeditAttr **attrs)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -153,14 +211,28 @@ NimfPreeditAttr **nimf_preedit_attrs_copy (NimfPreeditAttr **attrs)
   return preedit_attrs;
 }
 
-void nimf_preedit_attr_free (NimfPreeditAttr *attr)
+/**
+ * nimf_preedit_attr_free:
+ * @attr: a #NimfPreeditAttr
+ *
+ * Frees a @attr
+ */
+void
+nimf_preedit_attr_free (NimfPreeditAttr *attr)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   g_free (attr);
 }
 
-void nimf_preedit_attr_freev (NimfPreeditAttr **attrs)
+/**
+ * nimf_preedit_attr_freev:
+ * @attrs: an array of #NimfPreeditAttr
+ *
+ * Frees an array of @attrs
+ */
+void
+nimf_preedit_attr_freev (NimfPreeditAttr **attrs)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
@@ -171,5 +243,55 @@ void nimf_preedit_attr_freev (NimfPreeditAttr **attrs)
       nimf_preedit_attr_free (attrs[i]);
 
     g_free (attrs);
+  }
+}
+
+/**
+ * nimf_method_info_new:
+ *
+ * Returns: a new #NimfMethodInfo, which should be freed with
+ *   nimf_method_info_free().
+ */
+NimfMethodInfo *
+nimf_method_info_new ()
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  return g_slice_new0 (NimfMethodInfo);
+}
+
+/**
+ * nimf_method_info_free:
+ * @info: a #NimfMethodInfo
+ *
+ * Frees an @info.
+ */
+void
+nimf_method_info_free (NimfMethodInfo *info)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  if (info)
+    g_slice_free (NimfMethodInfo, info);
+}
+
+/**
+ * nimf_method_info_freev:
+ * @infos: an array of #NimfMethodInfo
+ *
+ * Frees an array of @infos.
+ */
+void
+nimf_method_info_freev (NimfMethodInfo **infos)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  if (infos)
+  {
+    int i;
+    for (i = 0; infos[i]; i++)
+      nimf_method_info_free (infos[i]);
+
+    g_free (infos);
   }
 }

@@ -1,46 +1,42 @@
 lib_LTLIBRARIES = libnimf.la
 
 BUILT_SOURCES = \
-	nimf-enum-types.h \
 	nimf-enum-types.c \
-	nimf-marshalers.h \
+	nimf-enum-types-private.h \
 	nimf-marshalers.c \
+	nimf-marshalers-private.h \
+	nimf-message-enum-types-private.h \
+	nimf-message-enum-types.c \
 	$(NULL)
 
 libnimf_la_SOURCES = \
 	nimf.h \
+	nimf-candidatable.c \
+	nimf-candidatable.h \
+	nimf-engine.c \
+	nimf-engine.h \
 	nimf-events.c \
 	nimf-events.h \
-	nimf-key-syms.c \
+	nimf-im.c \
+	nimf-im.h \
 	nimf-key-syms.h \
 	nimf-message.c \
-	nimf-message.h \
-	nimf-private.c \
-	nimf-private.h \
+	nimf-message-private.h \
+	nimf-module.c \
+	nimf-module-private.h \
+	nimf-preeditable.c \
+	nimf-preeditable.h \
+	nimf-server.c \
+	nimf-server.h \
+	nimf-server-private.h \
+	nimf-service.c \
+	nimf-service.h \
+	nimf-service-ic.c \
+	nimf-service-ic.h \
 	nimf-types.c \
 	nimf-types.h \
-	client/nimf-client.c \
-	client/nimf-client.h \
-	client/nimf-im.c \
-	client/nimf-im.h \
-	server/nimf-candidatable.c \
-	server/nimf-candidatable.h \
-	server/nimf-connection.c \
-	server/nimf-connection.h \
-	server/nimf-engine.c \
-	server/nimf-engine.h \
-	server/nimf-module.c \
-	server/nimf-module.h \
-	server/nimf-preeditable.c \
-	server/nimf-preeditable.h \
-	server/nimf-server.c \
-	server/nimf-server.h \
-	server/nimf-server-im.c \
-	server/nimf-server-im.h \
-	server/nimf-service.c \
-	server/nimf-service.h \
-	server/nimf-service-im.c \
-	server/nimf-service-im.h \
+	nimf-utils.c \
+	nimf-utils.h \
 	$(BUILT_SOURCES) \
 	$(NULL)
 
@@ -56,50 +52,58 @@ libnimf_la_LDFLAGS = -version-info $(LIBNIMF_LT_VERSION) $(LIBNIMF_DEPS_LIBS)
 nimfincludedir = $(includedir)/nimf
 nimfinclude_HEADERS = \
 	nimf.h \
-	nimf-enum-types.h \
+	nimf-candidatable.h \
+	nimf-engine.h \
 	nimf-events.h \
+	nimf-im.h \
 	nimf-key-syms.h \
-	nimf-message.h \
-	nimf-private.h \
+	nimf-preeditable.h \
+	nimf-server.h \
+	nimf-service.h \
+	nimf-service-ic.h \
 	nimf-types.h \
-	client/nimf-client.h \
-	client/nimf-im.h \
-	server/nimf-candidatable.h \
-	server/nimf-connection.h \
-	server/nimf-engine.h \
-	server/nimf-preeditable.h \
-	server/nimf-server.h \
-	server/nimf-service.h \
-	server/nimf-service-im.h \
+	nimf-utils.h \
 	$(NULL)
 
-nimf-marshalers.h: nimf-marshalers.list
+nimf-marshalers-private.h: nimf-marshalers.list
 	$(AM_V_GEN) glib-genmarshal --prefix=nimf_cclosure_marshal \
-	                            --header nimf-marshalers.list > nimf-marshalers.h
+	                            --header nimf-marshalers.list \
+	                            > nimf-marshalers-private.h
 
 nimf-marshalers.c: nimf-marshalers.list
 	$(AM_V_GEN) glib-genmarshal --prefix=nimf_cclosure_marshal \
-	                            --body nimf-marshalers.list > nimf-marshalers.c
+	                            --body nimf-marshalers.list \
+	                            > nimf-marshalers.c
 
-nimf-enum-types.h: nimf-key-syms.h \
-	                 nimf-message.h \
-	                 nimf-types.h \
-	                 nimf-enum-types.h.template
+nimf-enum-types-private.h: nimf-key-syms.h \
+	                         nimf-types.h \
+	                         nimf-enum-types-private.h.template
 	$(AM_V_GEN) glib-mkenums --identifier-prefix Nimf \
-	                         --template nimf-enum-types.h.template \
-	                           nimf-key-syms.h \
-	                           nimf-message.h \
-	                           nimf-types.h > nimf-enum-types.h
+	                         --template nimf-enum-types-private.h.template \
+	                           nimf-key-syms.h nimf-types.h \
+	                         > nimf-enum-types-private.h
 
 nimf-enum-types.c: nimf-key-syms.h \
-	                 nimf-message.h \
 	                 nimf-types.h \
 	                 nimf-enum-types.c.template
 	$(AM_V_GEN) glib-mkenums --identifier-prefix Nimf \
 	                         --template nimf-enum-types.c.template \
-	                           nimf-key-syms.h \
-	                           nimf-message.h \
-	                           nimf-types.h > nimf-enum-types.c
+	                           nimf-key-syms.h nimf-types.h \
+	                         > nimf-enum-types.c
+
+nimf-message-enum-types-private.h: \
+	nimf-message-private.h \
+	nimf-message-enum-types-private.h.template
+	$(AM_V_GEN) glib-mkenums \
+		--identifier-prefix Nimf \
+		--template nimf-message-enum-types-private.h.template \
+		nimf-message-private.h > nimf-message-enum-types-private.h
+
+nimf-message-enum-types.c: nimf-message.c nimf-enum-types.c.template
+	$(AM_V_GEN) glib-mkenums \
+		--identifier-prefix Nimf \
+		--template nimf-message-enum-types.c.template \
+		nimf-message-private.h > nimf-message-enum-types.c
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = nimf.pc

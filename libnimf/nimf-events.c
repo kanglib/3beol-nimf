@@ -3,7 +3,7 @@
  * nimf-events.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2015-2018 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2015-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -20,9 +20,21 @@
  */
 
 #include "nimf-events.h"
-#include <string.h>
 
-/* only for PC keyboards */
+/**
+ * SECTION:nimf-events
+ * @title: Events
+ * @section_id: nimf-events
+ */
+
+/**
+ * nimf_event_keycode_to_qwerty_keyval:
+ * @event: a #NimfEvent
+ *
+ * Converts @event to qwerty keyval. Use only for PC keyboards.
+ *
+ * Returns: the #guint value
+ */
 guint
 nimf_event_keycode_to_qwerty_keyval (const NimfEvent *event)
 {
@@ -78,6 +90,15 @@ nimf_event_keycode_to_qwerty_keyval (const NimfEvent *event)
   return keyval;
 }
 
+/**
+ * nimf_event_matches:
+ * @event: a #NimfEvent
+ * @keys: a %NULL-terminated array of #NimfKey
+ *
+ * Checks if @event matches one of the @keys.
+ *
+ * Returns: #TRUE if a match was found.
+ */
 gboolean
 nimf_event_matches (NimfEvent *event, const NimfKey **keys)
 {
@@ -98,7 +119,7 @@ nimf_event_matches (NimfEvent *event, const NimfKey **keys)
 
   for (i = 0; keys[i] != 0; i++)
   {
-    if ((event->key.state & mods_mask) == (keys[i]->mods & mods_mask) &&
+    if ((event->key.state & mods_mask) == (keys[i]->state & mods_mask) &&
         event->key.keyval == keys[i]->keyval)
       return TRUE;
   }
@@ -106,6 +127,14 @@ nimf_event_matches (NimfEvent *event, const NimfKey **keys)
   return FALSE;
 }
 
+/**
+ * nimf_event_new:
+ * @type: a #NimfEventType
+ *
+ * Creates a new event of the given type. All fields are set to 0.
+ *
+ * Returns: a new #NimfEvent, which should be freed with nimf_event_free().
+ */
 NimfEvent *
 nimf_event_new (NimfEventType type)
 {
@@ -117,6 +146,12 @@ nimf_event_new (NimfEventType type)
   return new_event;
 }
 
+/**
+ * nimf_event_free:
+ * @event: a #NimfEvent
+ *
+ * Frees @event.
+ */
 void
 nimf_event_free (NimfEvent *event)
 {
@@ -126,19 +161,3 @@ nimf_event_free (NimfEvent *event)
 
   g_slice_free (NimfEvent, event);
 }
-
-NimfEvent *
-nimf_event_copy (NimfEvent *event)
-{
-  g_debug (G_STRLOC ": %s", G_STRFUNC);
-
-  g_return_val_if_fail (event != NULL, NULL);
-
-  NimfEvent *new_event;
-  new_event = nimf_event_new (NIMF_EVENT_NOTHING);
-  *new_event = *event;
-
-  return new_event;
-}
-
-G_DEFINE_BOXED_TYPE (NimfEvent, nimf_event, nimf_event_copy, nimf_event_free)

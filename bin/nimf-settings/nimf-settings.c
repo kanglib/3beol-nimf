@@ -593,6 +593,25 @@ listbox_key_pressed_row (GtkListBox    *box,
   return TRUE;
 }
 
+gboolean
+on_foreach (GtkTreeModel *model,
+            GtkTreePath  *path,
+            GtkTreeIter  *iter,
+            gpointer      user_data)
+{
+  gchar *id;
+  GtkWidget *widget = user_data;
+  gtk_tree_model_get (model, iter, 1, &id, -1);
+
+  if (!g_strcmp0 (id, gtk_widget_get_name (widget)))
+  {
+    gtk_combo_box_set_active_iter (GTK_COMBO_BOX (widget), iter);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
 static void
 on_gsettings_changed (GSettings *settings,
                       gchar     *key,

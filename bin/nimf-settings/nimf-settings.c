@@ -895,7 +895,7 @@ nimf_settings_page_key_build_string (NimfSettingsPageKey *page_key,
   gtk_combo_box_set_id_column (GTK_COMBO_BOX (combo), 1);
   gtk_tree_model_get_iter_first ((GtkTreeModel *) store, &iter);
 
-  if (g_strcmp0 (page_key->key, "layout") == 0)
+  if (g_strcmp0 (page_key->key, "get-method-infos") == 0)
   {
     gchar *id1;
 

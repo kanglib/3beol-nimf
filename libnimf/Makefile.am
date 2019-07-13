@@ -33,10 +33,12 @@ libnimf_la_SOURCES = \
 	nimf-service.h \
 	nimf-service-ic.c \
 	nimf-service-ic.h \
+	nimf-service-ic-private.h \
 	nimf-types.c \
 	nimf-types.h \
 	nimf-utils.c \
 	nimf-utils.h \
+	nimf-utils-private.h \
 	$(BUILT_SOURCES) \
 	$(NULL)
 
@@ -45,6 +47,8 @@ libnimf_la_CFLAGS = \
 	-I$(top_srcdir)/libnimf \
 	-DNIMF_COMPILATION \
 	-DG_LOG_DOMAIN=\"nimf\" \
+	-DNIMF_MODULE_DIR=\"$(libdir)/nimf/modules\" \
+	-DNIMF_SERVICE_MODULE_DIR=\"$(libdir)/nimf/modules/services\" \
 	$(LIBNIMF_DEPS_CFLAGS)
 
 libnimf_la_LDFLAGS = -version-info $(LIBNIMF_LT_VERSION) $(LIBNIMF_DEPS_LIBS)

@@ -307,36 +307,40 @@ on_comparing_engine_with_id (NimfEngine *engine, const gchar *id)
 }
 
 static GList *
-nimf_service_ic_create_engines (NimfServiceIC *ic)
+nimf_service_ic_load_engines (NimfServiceIC *ic)
 {
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
   GList *engines = NULL;
-  GHashTableIter iter;
-  gpointer       module;
-  NimfServer    *server = nimf_server_get_default ();
+  NimfServer *server;
+  GList *l;
 
-  g_hash_table_iter_init (&iter, server->priv->modules);
+  server = nimf_server_get_default ();
 
-  while (g_hash_table_iter_next (&iter, NULL, &module))
+  for (l = server->priv->engines; l != NULL; l = l->next)
   {
-    NimfEngine *engine;
-    engine = g_object_new (NIMF_MODULE (module)->type, NULL);
-    engines = g_list_prepend (engines, engine);
+    NimfModule  *module;
+    const gchar *engine_id;
+
+    engine_id = nimf_engine_get_id (NIMF_ENGINE (l->data));
+    module = g_hash_table_lookup (server->priv->modules, engine_id);
+    engines = g_list_prepend (engines, g_object_new (module->type, NULL));
   }
 
   return engines;
 }
 
 static NimfEngine *
-nimf_service_ic_get_instance (NimfServiceIC *ic, const gchar *engine_id)
+nimf_service_ic_get_engine_by_id (NimfServiceIC *ic, const gchar *engine_id)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   GList *list;
 
   if (ic->priv->engines == NULL)
-    ic->priv->engines = nimf_service_ic_create_engines (ic);
+    ic->priv->engines = nimf_service_ic_load_engines (ic);
 
-  list = g_list_find_custom (g_list_first (ic->priv->engines), engine_id,
+  list = g_list_find_custom (ic->priv->engines, engine_id,
                              (GCompareFunc) on_comparing_engine_with_id);
   if (list)
     return list->data;
@@ -345,32 +349,27 @@ nimf_service_ic_get_instance (NimfServiceIC *ic, const gchar *engine_id)
 }
 
 static NimfEngine *
-nimf_service_ic_get_next_instance (NimfServiceIC *ic, NimfEngine *engine)
+nimf_service_ic_get_next_engine (NimfServiceIC *ic, NimfEngine *engine)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   GList *list;
 
   if (ic->priv->engines == NULL)
-    ic->priv->engines = nimf_service_ic_create_engines (ic);
+    ic->priv->engines = nimf_service_ic_load_engines (ic);
 
-  ic->priv->engines = g_list_first (ic->priv->engines);
-  ic->priv->engines = g_list_find  (ic->priv->engines, engine);
-
-  list = g_list_next (ic->priv->engines);
+  list = g_list_find (ic->priv->engines, engine);
 
   if (list == NULL)
-    list = g_list_first (ic->priv->engines);
+    list = g_list_find_custom (ic->priv->engines, nimf_engine_get_id (engine),
+                               (GCompareFunc) on_comparing_engine_with_id);
 
-  if (list)
-  {
-    ic->priv->engines = list;
-    return list->data;
-  }
+  list = g_list_next (list);
 
-  g_assert (list != NULL);
+  if (list == NULL)
+    list = ic->priv->engines;
 
-  return engine;
+  return list->data;
 }
 
 /**
@@ -392,37 +391,39 @@ nimf_service_ic_filter_event (NimfServiceIC *ic,
     return FALSE;
 
   GHashTableIter iter;
-  gpointer       trigger_keys;
+  NimfShortcut  *shortcut;
   gpointer       engine_id;
+  const gchar   *engine_id0 = nimf_engine_get_id (ic->priv->engine);
   NimfServer    *server = nimf_server_get_default ();
 
-  g_hash_table_iter_init (&iter, server->priv->trigger_keys);
+  g_hash_table_iter_init (&iter, server->priv->shortcuts);
 
-  while (g_hash_table_iter_next (&iter, &trigger_keys, &engine_id))
+  while (g_hash_table_iter_next (&iter, &engine_id, (gpointer) &shortcut))
   {
-    if (nimf_event_matches (event, trigger_keys))
+    if ((shortcut->to_lang &&
+         nimf_event_matches (event, (const NimfKey **) shortcut->to_lang) &&
+         g_strcmp0 (engine_id0, engine_id)))
     {
       if (event->key.type == NIMF_EVENT_KEY_PRESS)
       {
         nimf_service_ic_reset (ic);
+        nimf_service_ic_change_engine_by_id (ic, engine_id);
+      }
 
-        if (g_strcmp0 (nimf_engine_get_id (ic->priv->engine), engine_id) != 0)
-        {
-          if (server->priv->use_singleton)
-            ic->priv->engine = nimf_server_get_engine_by_id (server, engine_id);
-          else
-            ic->priv->engine = nimf_service_ic_get_instance (ic, engine_id);
-        }
-        else
-        {
-          if (server->priv->use_singleton)
-            ic->priv->engine = nimf_server_get_engine_by_id (server, "nimf-system-keyboard");
-          else
-            ic->priv->engine = nimf_service_ic_get_instance (ic, "nimf-system-keyboard");
-        }
+      if (event->key.keyval == NIMF_KEY_Escape)
+        return FALSE;
 
-        nimf_service_ic_engine_changed (ic, nimf_engine_get_id (ic->priv->engine),
-                                        nimf_engine_get_icon_name (ic->priv->engine));
+      return TRUE;
+    }
+
+    if ((shortcut->to_sys &&
+         nimf_event_matches (event, (const NimfKey **) shortcut->to_sys) &&
+         !g_strcmp0 (engine_id0, engine_id)))
+    {
+      if (event->key.type == NIMF_EVENT_KEY_PRESS)
+      {
+        nimf_service_ic_reset (ic);
+        nimf_service_ic_change_engine_by_id (ic, "nimf-system-keyboard");
       }
 
       if (event->key.keyval == NIMF_KEY_Escape)
@@ -439,9 +440,9 @@ nimf_service_ic_filter_event (NimfServiceIC *ic,
       nimf_service_ic_reset (ic);
 
       if (server->priv->use_singleton)
-        ic->priv->engine = nimf_server_get_next_instance (server, ic->priv->engine);
+        ic->priv->engine = nimf_server_get_next_engine (server, ic->priv->engine);
       else
-        ic->priv->engine = nimf_service_ic_get_next_instance (ic, ic->priv->engine);
+        ic->priv->engine = nimf_service_ic_get_next_engine (ic, ic->priv->engine);
 
       nimf_service_ic_engine_changed (ic, nimf_engine_get_id (ic->priv->engine),
                                       nimf_engine_get_icon_name (ic->priv->engine));
@@ -606,7 +607,7 @@ nimf_service_ic_change_engine_by_id (NimfServiceIC *ic,
   if (server->priv->use_singleton)
     engine = nimf_server_get_engine_by_id (server, engine_id);
   else
-    engine = nimf_service_ic_get_instance (ic, engine_id);
+    engine = nimf_service_ic_get_engine_by_id (ic, engine_id);
 
   g_return_if_fail (engine != NULL);
 
@@ -636,7 +637,7 @@ nimf_service_ic_change_engine (NimfServiceIC *ic,
   if (server->priv->use_singleton)
     engine = nimf_server_get_engine_by_id (server, engine_id);
   else
-    engine = nimf_service_ic_get_instance (ic, engine_id);
+    engine = nimf_service_ic_get_engine_by_id (ic, engine_id);
 
   g_return_if_fail (engine != NULL);
 
@@ -698,14 +699,14 @@ nimf_service_ic_get_default_engine (NimfServiceIC *ic)
 
   settings  = g_settings_new ("org.nimf.engines");
   engine_id = g_settings_get_string (settings, "default-engine");
-  engine    = nimf_service_ic_get_instance (ic, engine_id);
+  engine    = nimf_service_ic_get_engine_by_id (ic, engine_id);
 
   if (G_UNLIKELY (engine == NULL))
   {
     g_settings_reset (settings, "default-engine");
     g_free (engine_id);
     engine_id = g_settings_get_string (settings, "default-engine");
-    engine = nimf_service_ic_get_instance (ic, engine_id);
+    engine = nimf_service_ic_get_engine_by_id (ic, engine_id);
   }
 
   g_free (engine_id);
@@ -721,6 +722,79 @@ nimf_service_ic_init (NimfServiceIC *ic)
 
   ic->priv = nimf_service_ic_get_instance_private (ic);
   ic->priv->cursor_area = g_slice_new0 (NimfRectangle);
+}
+
+void
+nimf_service_ic_load_engine (NimfServiceIC *ic,
+                             const gchar   *engine_id,
+                             NimfServer    *server)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  if (ic->priv->engines)
+  {
+    if (server->priv->use_singleton)
+    {
+      NimfServer *server = nimf_server_get_default ();
+
+      if (g_list_find (server->priv->engines, ic->priv->engine) == NULL)
+      {
+        const gchar *id = nimf_engine_get_id (ic->priv->engine);
+        ic->priv->engine = nimf_server_get_engine_by_id (server, id);
+      }
+
+      g_list_free_full (ic->priv->engines, g_object_unref);
+      ic->priv->engines = NULL;
+    }
+    else
+    {
+      NimfModule *module;
+      NimfEngine *engine;
+
+      module = g_hash_table_lookup (server->priv->modules, engine_id);
+      engine = g_object_new (module->type, NULL);
+      ic->priv->engines = g_list_prepend (ic->priv->engines, engine);
+    }
+  }
+}
+
+void
+nimf_service_ic_unload_engine (NimfServiceIC *ic,
+                               const gchar   *engine_id,
+                               NimfEngine    *signleton_engine_to_be_deleted,
+                               NimfServer    *server)
+{
+  g_debug (G_STRLOC ": %s", G_STRFUNC);
+
+  if (ic->priv->engines)
+  {
+    GList *list;
+    list = g_list_find_custom (ic->priv->engines, engine_id,
+                               (GCompareFunc) on_comparing_engine_with_id);
+    if (list)
+    {
+      if (ic->priv->engine == list->data)
+      {
+        if (server->priv->use_singleton)
+          ic->priv->engine = nimf_server_get_default_engine (server);
+        else
+          ic->priv->engine = nimf_service_ic_get_default_engine (ic);
+      }
+
+      g_object_unref (list->data);
+      ic->priv->engines = g_list_delete_link (ic->priv->engines, list);
+    }
+  }
+  else
+  {
+    if (ic->priv->engine == signleton_engine_to_be_deleted)
+    {
+      if (server->priv->use_singleton)
+        ic->priv->engine = nimf_server_get_default_engine (server);
+      else
+        ic->priv->engine = nimf_service_ic_get_default_engine (ic);
+    }
+  }
 }
 
 static void
@@ -740,7 +814,7 @@ nimf_service_ic_constructed (GObject *object)
   }
   else
   {
-    ic->priv->engines = nimf_service_ic_create_engines (ic);
+    ic->priv->engines = nimf_service_ic_load_engines (ic);
     ic->priv->engine  = nimf_service_ic_get_default_engine (ic);
   }
 
@@ -748,6 +822,8 @@ nimf_service_ic_constructed (GObject *object)
   ic->priv->preedit_attrs      = g_malloc0_n (1, sizeof (NimfPreeditAttr *));
   ic->priv->preedit_attrs[0]   = NULL;
   ic->priv->preedit_cursor_pos = 0;
+
+  g_ptr_array_add (server->priv->ics, ic);
 }
 
 static void
@@ -755,7 +831,10 @@ nimf_service_ic_finalize (GObject *object)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  NimfServiceIC *ic = NIMF_SERVICE_IC (object);
+  NimfServiceIC *ic     = NIMF_SERVICE_IC (object);
+  NimfServer    *server = nimf_server_get_default ();
+
+  g_ptr_array_remove_fast (server->priv->ics, ic);
 
   if (ic->priv->engines)
     g_list_free_full (ic->priv->engines, g_object_unref);

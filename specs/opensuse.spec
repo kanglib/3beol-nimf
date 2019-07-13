@@ -1,6 +1,6 @@
 Name:     nimf
 Summary:  An input method framework
-Version:  2019.03.31
+Version:  2019.07.10
 Release:  1%{?dist}
 License:  LGPLv3+
 Group:    User Interface/Desktops
@@ -27,20 +27,19 @@ BuildRequires: librime-devel >= 1.2.9
 BuildRequires: libxkbcommon-devel
 BuildRequires: wayland-devel
 BuildRequires: libxklavier-devel
-BuildRequires: m17n-lib-devel
+BuildRequires: m17n-lib-devel >= 1.7.0
+BuildRequires: m17n-db >= 1.7.0
 BuildRequires: gtk-doc
 
 Requires:         im-chooser
-Requires:         anthy
+Requires:         anthy, libm17n0 >= 1.7.0, m17n-db >= 1.7.0
 Requires(post):   %{_sbindir}/alternatives
 Requires(postun): %{_sbindir}/alternatives
 
 %define _xinputconf %{_sysconfdir}/X11/xinit/xinput.d/nimf.conf
 
 %description
-Nimf is an input method framework which has a module-based client-server
-architecture in which an application acts as a client and communicates
-synchronously with the Nimf server via a unix socket.
+Nimf is a lightweight, fast and extensible input method framework.
 
 %package devel
 Summary:  Development files for nimf
@@ -105,6 +104,7 @@ fi
 %{_datadir}/icons/*
 %{_datadir}/locale/*
 %{_datadir}/man/*
+%{_sysconfdir}/input.d/nimf.conf
 %{_sysconfdir}/xdg/autostart/*
 
 %files devel
@@ -114,5 +114,5 @@ fi
 %{_libdir}/pkgconfig/*
 
 %changelog
-* Sun Mar 31 2019 Hodong Kim <cogniti@gmail.com> - 2019.03.31-1
+* Wed Jul 10 2019 Hodong Kim <cogniti@gmail.com> - 2019.07.10-1
 - See https://gitlab.com/nimf-i18n/nimf/blob/master/debian/changelog

@@ -1,6 +1,4 @@
-Nimf is an input method framework which has a module-based client-server
-architecture in which an application acts as a client and communicates
-synchronously with the Nimf server via a Unix socket.
+Nimf is a lightweight, fast and extensible input method framework.
 
 Nimf provides:
   * Input Method Server:
@@ -23,10 +21,11 @@ Nimf provides:
   * Settings tool to configure the Nimf:
     * nimf-settings
   * Development files:
-    * C library and headers
+    * C library, headers and documents
 
 Project Homepage:
   * https://gitlab.com/nimf-i18n/nimf
+  * https://nimf-i18n.gitlab.io
 
 
 License
@@ -65,9 +64,22 @@ Compiling and installing
 
   * Compiling and installing in the usual way
 
+    There are configuration options. Use it for your situation.
+
+      --disable-hardening     Disable hardening
+      --disable-nimf-anthy    Disable nimf-anthy
+      --disable-nimf-m17n     Disable nimf-m17n
+      --disable-nimf-rime     Disable nimf-rime
+      --with-im-config-data   Install im-config data
+      --with-imsettings-data  Install imsettings data
+
     If you are using im-config
 
       ./autogen.sh --with-im-config-data
+
+    If you are using im-chooser
+
+      ./autogen.sh --with-imsettings-data
 
     Otherwise
 
@@ -149,17 +161,8 @@ Configure
 
   * How to enable Nimf on systems using systemd v233 or later
 
-    Create a file and write the following lines to ~/.config/environment.d/50-nimf.conf
-
-      GTK_IM_MODULE=nimf
-      QT4_IM_MODULE=nimf
-      QT_IM_MODULE=nimf
-      XMODIFIERS=@im=nimf
-
-    Then append the following line to ~/.xprofile
-
-      export $(/usr/lib/systemd/user-environment-generators/30-systemd-environment-d-generator)
-
+    Run nimf-settings.
+    Turn on the "Setup environment variables" option in the Nimf menu.
 
 Debugging
 ---------

@@ -31,26 +31,33 @@ struct _NimfServerPrivate
 {
   GHashTable    *modules;
   GHashTable    *services;
-  GList         *instances;
+  GList         *engines;
   NimfServiceIC *last_focused_im;
   const gchar   *last_focused_service;
   GSettings     *settings;
   NimfKey      **hotkeys;
-  GHashTable    *trigger_gsettings;
-  GHashTable    *trigger_keys;
+  GHashTable    *shortcuts;
   gboolean       use_singleton;
+  GPtrArray     *ics;
   /* facilities */
   NimfCandidatable *candidatable;
   NimfPreeditable  *preeditable;
 };
 
+typedef struct {
+  GSettings  *settings;
+  NimfKey   **to_lang;
+  NimfKey   **to_sys;
+} NimfShortcut;
+
 G_END_DECLS
 
 NimfEngine *nimf_server_get_default_engine (NimfServer  *server);
-NimfEngine *nimf_server_get_next_instance  (NimfServer  *server,
+NimfEngine *nimf_server_get_next_engine    (NimfServer  *server,
                                             NimfEngine  *engine);
 NimfEngine *nimf_server_get_engine_by_id   (NimfServer  *server,
                                             const gchar *engine_id);
+gboolean    nimf_server_start              (NimfServer  *server);
 
 #endif /* __NIMF_SERVER_PRIVATE_H__ */
 

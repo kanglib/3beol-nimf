@@ -7,15 +7,20 @@
       <summary>schema name for nimf-settings</summary>
       <description>This key is intended for nimf-settings.</description>
     </key>
-    <key type="b" name="active">
+    <key type="b" name="active-engine">
       <default>true</default>
       <summary>Active engine</summary>
-      <description>The engine will be loaded on startup if available. Restart required</description>
+      <description>Active engine</description>
     </key>
-    <key type="as" name="trigger-keys">
+    <key type="as" name="shortcuts-to-lang">
       <default>['&lt;Control&gt; &lt;Mod1&gt; r']</default>
-      <summary>Trigger keys for switching Chinese / System</summary>
-      <description>Trigger keys for switching Chinese / System</description>
+      <summary>Shortcuts to switch to Chinese</summary>
+      <description>Shortcuts to switch to Chinese (rime)</description>
+    </key>
+    <key type="as" name="shortcuts-to-sys">
+      <default>['&lt;Control&gt; &lt;Mod1&gt; r']</default>
+      <summary>Shortcuts from Chinese to system keyboard</summary>
+      <description>Shortcuts from Chinese to system keyboard</description>
     </key>
     <key type="b" name="simplification">
       <default>true</default>

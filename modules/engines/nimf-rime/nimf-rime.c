@@ -3,7 +3,7 @@
  * nimf-rime.c
  * This file is part of Nimf.
  *
- * Copyright (C) 2016-2018 Hodong Kim <cogniti@gmail.com>
+ * Copyright (C) 2016-2019 Hodong Kim <cogniti@gmail.com>
  *
  * Nimf is free software: you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as published
@@ -70,18 +70,21 @@ static void nimf_rime_update_preedit (NimfEngine    *engine,
 
   NimfRime *rime = NIMF_RIME (engine);
 
-  if (rime->preedit_state == NIMF_PREEDIT_STATE_END && rime->preedit->len > 0)
+  if (rime->preedit_state == NIMF_PREEDIT_STATE_END && new_preedit[0] != 0)
   {
     rime->preedit_state = NIMF_PREEDIT_STATE_START;
     nimf_engine_emit_preedit_start (engine, target);
   }
 
-  g_string_assign (rime->preedit, new_preedit);
-  rime->cursor_pos = cursor_pos;
-  rime->preedit_attrs[0]->start_index = 0;
-  rime->preedit_attrs[0]->end_index = g_utf8_strlen (rime->preedit->str, -1);
-  nimf_engine_emit_preedit_changed (engine, target, rime->preedit->str,
-                                    rime->preedit_attrs, cursor_pos);
+  if (rime->preedit->len > 0 || new_preedit[0] != 0)
+  {
+    g_string_assign (rime->preedit, new_preedit);
+    rime->cursor_pos = cursor_pos;
+    rime->preedit_attrs[0]->start_index = 0;
+    rime->preedit_attrs[0]->end_index = g_utf8_strlen (rime->preedit->str, -1);
+    nimf_engine_emit_preedit_changed (engine, target, rime->preedit->str,
+                                      rime->preedit_attrs, cursor_pos);
+  }
 
   if (rime->preedit_state == NIMF_PREEDIT_STATE_START && rime->preedit->len == 0)
   {
@@ -396,8 +399,14 @@ nimf_rime_init (NimfRime *rime)
   if (nimf_rime_ref_count == 0)
   {
     gchar *user_data_dir;
+    static gboolean logging = FALSE;
 
-    RimeSetupLogging ("nimf-rime");
+    if (logging == FALSE)
+    {
+      RimeSetupLogging ("nimf-rime");
+      logging = TRUE;
+    }
+
     user_data_dir = g_strconcat (g_getenv ("HOME"), "/.config/nimf/rime", NULL);
 
     if (!g_file_test (user_data_dir, G_FILE_TEST_IS_DIR))

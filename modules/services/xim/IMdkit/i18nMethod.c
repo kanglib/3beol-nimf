@@ -1,3 +1,4 @@
+/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*- */
 /******************************************************************
 
          Copyright 1994, 1995 by Sun Microsystems, Inc.
@@ -31,250 +32,46 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include "i18nMethod.h"
 #include "FrameMgr.h"
-#include "IMdkit.h"
 #include "Xi18n.h"
 #include "XimFunc.h"
 #include <glib.h>
 
-extern Xi18nClient *_Xi18nFindClient (Xi18n, CARD16);
+/* How to generate SUPPORTED_LOCALES
+#!/usr/bin/ruby
+# -*- coding: utf-8 -*-
 
-static void *xi18n_setup (Display *, XIMArg *);
-static Status xi18n_openIM (XIMS);
-static Status xi18n_closeIM (XIMS);
-static Status xi18n_forwardEvent (XIMS, XPointer);
-static Status xi18n_commit (XIMS, XPointer);
-static int xi18n_preeditStart (XIMS, XPointer);
-static int xi18n_preeditEnd (XIMS, XPointer);
-static int xi18n_syncXlib (XIMS, XPointer);
+require 'set'
+
+set = Set.new
+
+File.open("/usr/share/i18n/SUPPORTED", "r").each do |line|
+  set << line.split(/_| /)[0]
+end
+
+puts set.to_a.join(",")
+*/
+#define SUPPORTED_LOCALES \
+  "aa,af,agr,ak,am,an,anp,ar,ayc,az,as,ast,be,bem,ber,bg,bhb,bho,bi,bn,bo,"   \
+  "br,brx,bs,byn,ca,ce,chr,cmn,crh,cs,csb,cv,cy,da,de,doi,dsb,dv,dz,el,en,"   \
+  "eo,es,et,eu,fa,ff,fi,fil,fo,fr,fur,fy,ga,gd,gez,gl,gu,gv,ha,hak,he,hi,"    \
+  "hif,hne,hr,hsb,ht,hu,hy,ia,id,ig,ik,is,it,iu,ja,ka,kab,kk,kl,km,kn,ko,"    \
+  "kok,ks,ku,kw,ky,lb,lg,li,lij,ln,lo,lt,lv,lzh,mag,mai,mfe,mg,mhr,mi,miq,"   \
+  "mjw,mk,ml,mn,mni,mr,ms,mt,my,nan,nb,nds,ne,nhn,niu,nl,nn,nr,nso,oc,om,or," \
+  "os,pa,pap,pl,ps,pt,quz,raj,ro,ru,rw,sa,sah,sat,sc,sd,se,sgs,shn,shs,si,"   \
+  "sid,sk,sl,sm,so,sq,sr,ss,st,sv,sw,szl,ta,tcy,te,tg,th,the,ti,tig,tk,tl,"   \
+  "tn,to,tpi,tr,ts,tt,ug,uk,unm,ur,uz,ve,vi,wa,wae,wal,wo,xh,yi,yo,yue,yuw,"  \
+  "zh,zu"
+
+extern Xi18nClient *_Xi18nFindClient (NimfXim *, CARD16);
 
 #ifndef XIM_SERVERS
 #define XIM_SERVERS "XIM_SERVERS"
 #endif
 static Atom XIM_Servers = None;
 
-IMMethodsRec Xi18n_im_methods =
+static int SetXi18nSelectionOwner (NimfXim *xim, Window im_window)
 {
-    xi18n_setup,
-    xi18n_openIM,
-    xi18n_closeIM,
-    xi18n_forwardEvent,
-    xi18n_commit,
-    xi18n_preeditStart,
-    xi18n_preeditEnd,
-    xi18n_syncXlib,
-};
-
-extern Bool _Xi18nCheckXAddress (Xi18n, TransportSW *, char *);
-extern Bool _Xi18nCheckTransAddress (Xi18n, TransportSW *, char *);
-
-TransportSW _TransR[] =
-{
-    {"X",               1, _Xi18nCheckXAddress},
-#ifdef TCPCONN
-    {"tcp",             3, _Xi18nCheckTransAddress},
-    {"local",           5, _Xi18nCheckTransAddress},
-#endif
-#ifdef DNETCONN
-    {"decnet",          6, _Xi18nCheckTransAddress},
-#endif
-    {(char *) NULL,     0, (Bool (*) ()) NULL}
-};
-
-static char *ParseArgs (Xi18n i18n_core, XIMArg *args)
-{
-    Xi18nAddressRec *address = (Xi18nAddressRec *) &i18n_core->address;
-    XIMArg *p;
-
-    for (p = args;  p->name != NULL;  p++)
-    {
-        if (strcmp (p->name, IMLocale) == 0)
-        {
-            if (address->imvalue_mask & I18N_IM_LOCALE)
-                return IMLocale;
-            /*endif*/
-            address->im_locale = (char *) malloc (strlen (p->value) + 1);
-            if (!address->im_locale)
-                return IMLocale;
-            /*endif*/
-            strcpy (address->im_locale, p->value);
-            address->imvalue_mask |= I18N_IM_LOCALE;
-        }
-        else if (strcmp (p->name, IMServerTransport) == 0)
-        {
-            if (address->imvalue_mask & I18N_IM_ADDRESS)
-                return IMServerTransport;
-            /*endif*/
-            address->im_addr = (char *) malloc (strlen (p->value) + 1);
-            if (!address->im_addr)
-                return IMServerTransport;
-            /*endif*/
-            strcpy(address->im_addr, p->value);
-            address->imvalue_mask |= I18N_IM_ADDRESS;
-        }
-        else if (strcmp (p->name, IMServerName) == 0)
-        {
-            if (address->imvalue_mask & I18N_IM_NAME)
-                return IMServerName;
-            /*endif*/
-            address->im_name = (char *) malloc (strlen (p->value) + 1);
-            if (!address->im_name)
-                return IMServerName;
-            /*endif*/
-            strcpy (address->im_name, p->value);
-            address->imvalue_mask |= I18N_IM_NAME;
-        }
-        else if (strcmp (p->name, IMServerWindow) == 0)
-        {
-            if (address->imvalue_mask & I18N_IMSERVER_WIN)
-                return IMServerWindow;
-            /*endif*/
-            address->im_window = (Window) p->value;
-            address->imvalue_mask |= I18N_IMSERVER_WIN;
-        }
-        else if (strcmp (p->name, IMInputStyles) == 0)
-        {
-            if (address->imvalue_mask & I18N_INPUT_STYLES)
-                return IMInputStyles;
-            /*endif*/
-            address->input_styles.count_styles =
-                ((XIMStyles*)p->value)->count_styles;
-            address->input_styles.supported_styles =
-                (XIMStyle *) malloc (sizeof (XIMStyle)*address->input_styles.count_styles);
-            if (address->input_styles.supported_styles == (XIMStyle *) NULL)
-                return IMInputStyles;
-            /*endif*/
-            memmove (address->input_styles.supported_styles,
-                     ((XIMStyles *) p->value)->supported_styles,
-                     sizeof (XIMStyle)*address->input_styles.count_styles);
-            address->imvalue_mask |= I18N_INPUT_STYLES;
-        }
-        else if (strcmp (p->name, IMProtocolHandler) == 0)
-        {
-            address->improto = (IMProtoHandler) p->value;
-            address->imvalue_mask |= I18N_IM_HANDLER;
-        }
-        else if (strcmp (p->name, IMUserData) == 0)
-        {
-            address->user_data = (void *) p->value;
-            address->imvalue_mask |= I18N_IM_USER_DATA;
-        }
-        else if (strcmp (p->name, IMOnKeysList) == 0)
-        {
-            if (address->imvalue_mask & I18N_ON_KEYS)
-                return IMOnKeysList;
-            /*endif*/
-            address->on_keys.count_keys =
-                ((XIMTriggerKeys *) p->value)->count_keys;
-            address->on_keys.keylist =
-                (XIMTriggerKey *) malloc (sizeof (XIMTriggerKey)*address->on_keys.count_keys);
-            if (address->on_keys.keylist == (XIMTriggerKey *) NULL)
-                return IMOnKeysList;
-            /*endif*/
-            memmove (address->on_keys.keylist,
-                     ((XIMTriggerKeys *) p->value)->keylist,
-                     sizeof (XIMTriggerKey)*address->on_keys.count_keys);
-            address->imvalue_mask |= I18N_ON_KEYS;
-        }
-        else if (strcmp (p->name, IMOffKeysList) == 0)
-        {
-            if (address->imvalue_mask & I18N_OFF_KEYS)
-                return IMOffKeysList;
-            /*endif*/
-            address->off_keys.count_keys =
-                ((XIMTriggerKeys *) p->value)->count_keys;
-            address->off_keys.keylist =
-                (XIMTriggerKey *) malloc (sizeof (XIMTriggerKey)*address->off_keys.count_keys);
-            if (address->off_keys.keylist == (XIMTriggerKey *) NULL)
-                return IMOffKeysList;
-            /*endif*/
-            memmove (address->off_keys.keylist,
-                     ((XIMTriggerKeys *) p->value)->keylist,
-                     sizeof (XIMTriggerKey)*address->off_keys.count_keys);
-            address->imvalue_mask |= I18N_OFF_KEYS;
-        }
-        else if (strcmp (p->name, IMEncodingList) == 0)
-        {
-            if (address->imvalue_mask & I18N_ENCODINGS)
-                return IMEncodingList;
-            /*endif*/
-            address->encoding_list.count_encodings =
-                ((XIMEncodings *) p->value)->count_encodings;
-            address->encoding_list.supported_encodings =
-                (XIMEncoding *) malloc (sizeof (XIMEncoding)*address->encoding_list.count_encodings);
-            if (address->encoding_list.supported_encodings
-                == (XIMEncoding *) NULL)
-            {
-                return IMEncodingList;
-            }
-            /*endif*/
-            memmove (address->encoding_list.supported_encodings,
-                     ((XIMEncodings *) p->value)->supported_encodings,
-                     sizeof (XIMEncoding)*address->encoding_list.count_encodings);
-            address->imvalue_mask |= I18N_ENCODINGS;
-        }
-        else if (strcmp (p->name, IMFilterEventMask) == 0)
-        {
-            if (address->imvalue_mask & I18N_FILTERMASK)
-                return IMFilterEventMask;
-            /*endif*/
-            address->filterevent_mask = (long) p->value;
-            address->imvalue_mask |= I18N_FILTERMASK;
-        }
-        /*endif*/
-    }
-
-    /* check mandatory IM values */
-    if (!(address->imvalue_mask & I18N_IM_LOCALE))
-    {
-        /* locales must be set in IMOpenIM */
-        return IMLocale;
-    }
-    /*endif*/
-    if (!(address->imvalue_mask & I18N_IM_ADDRESS))
-    {
-        /* address must be set in IMOpenIM */
-        return IMServerTransport;
-    }
-
-    return NULL;
-}
-
-static int CheckIMName (Xi18n i18n_core)
-{
-    char *address = i18n_core->address.im_addr;
-    int i;
-
-    for (i = 0;  _TransR[i].transportname;  i++)
-    {
-        while (*address == ' '  ||  *address == '\t')
-            address++;
-        /*endwhile*/
-        if (strncmp (address,
-                     _TransR[i].transportname,
-                     _TransR[i].namelen) == 0
-            &&
-            address[_TransR[i].namelen] == '/')
-        {
-            if (_TransR[i].checkAddr (i18n_core,
-                                      &_TransR[i],
-                                      address + _TransR[i].namelen + 1) == True)
-            {
-                return True;
-            }
-            /*endif*/
-            return False;
-        }
-        /*endif*/
-    }
-    /*endfor*/
-    return False;
-}
-
-static int SetXi18nSelectionOwner(Xi18n i18n_core)
-{
-    Display *dpy = i18n_core->address.dpy;
-    Window ims_win = i18n_core->address.im_window;
-    Window root = RootWindow (dpy, DefaultScreen (dpy));
+    Window root = RootWindow (xim->display, DefaultScreen (xim->display));
     Atom realtype;
     int realformat;
     unsigned long bytesafter;
@@ -284,17 +81,16 @@ static int SetXi18nSelectionOwner(Xi18n i18n_core)
     int i;
     int found;
     int forse = False;
-    char buf[256];
 
-    (void)snprintf(buf, 256, "@server=%s", i18n_core->address.im_name);
-    if ((atom = XInternAtom(dpy, buf, False)) == 0)
+    if ((atom = XInternAtom (xim->display, "@server=nimf", False)) == 0)
         return False;
-    i18n_core->address.selection = atom;
+
+    xim->address.selection = atom;
 
     if (XIM_Servers == None)
-        XIM_Servers = XInternAtom (dpy, XIM_SERVERS, False);
+        XIM_Servers = XInternAtom (xim->display, XIM_SERVERS, False);
     /*endif*/
-    XGetWindowProperty (dpy,
+    XGetWindowProperty (xim->display,
                         root,
                         XIM_Servers,
                         0L,
@@ -317,9 +113,9 @@ static int SetXi18nSelectionOwner(Xi18n i18n_core)
         if (data[i] == atom) {
             Window owner;
             found = True;
-            if ((owner = XGetSelectionOwner (dpy, atom)) != ims_win) {
+            if ((owner = XGetSelectionOwner (xim->display, atom)) != im_window) {
                 if (owner == None  ||  forse == True)
-                    XSetSelectionOwner (dpy, atom, ims_win, CurrentTime);
+                    XSetSelectionOwner (xim->display, atom, im_window, CurrentTime);
                 else
                     return False;
             }
@@ -328,8 +124,8 @@ static int SetXi18nSelectionOwner(Xi18n i18n_core)
     }
 
     if (found == False) {
-        XSetSelectionOwner (dpy, atom, ims_win, CurrentTime);
-        XChangeProperty (dpy,
+        XSetSelectionOwner (xim->display, atom, im_window, CurrentTime);
+        XChangeProperty (xim->display,
                          root,
                          XIM_Servers,
                          XA_ATOM,
@@ -342,7 +138,7 @@ static int SetXi18nSelectionOwner(Xi18n i18n_core)
 	/*
 	 * We always need to generate the PropertyNotify to the Root Window
 	 */
-        XChangeProperty (dpy,
+        XChangeProperty (xim->display,
                          root,
                          XIM_Servers,
                          XA_ATOM,
@@ -355,15 +151,14 @@ static int SetXi18nSelectionOwner(Xi18n i18n_core)
         XFree ((char *) data);
 
     /* Intern "LOCALES" and "TRANSOPORT" Target Atoms */
-    i18n_core->address.Localename = XInternAtom (dpy, LOCALES, False);
-    i18n_core->address.Transportname = XInternAtom (dpy, TRANSPORT, False);
-    return (XGetSelectionOwner (dpy, atom) == ims_win);
+    xim->address.Localename = XInternAtom (xim->display, LOCALES, False);
+    xim->address.Transportname = XInternAtom (xim->display, TRANSPORT, False);
+    return (XGetSelectionOwner (xim->display, atom) == im_window);
 }
 
-static int DeleteXi18nAtom(Xi18n i18n_core)
+static int DeleteXi18nAtom (NimfXim *xim)
 {
-    Display *dpy = i18n_core->address.dpy;
-    Window root = RootWindow (dpy, DefaultScreen (dpy));
+    Window root = RootWindow (xim->display, DefaultScreen (xim->display));
     Atom realtype;
     int realformat;
     unsigned long bytesafter;
@@ -372,16 +167,15 @@ static int DeleteXi18nAtom(Xi18n i18n_core)
     Atom atom;
     int i, ret;
     int found;
-    char buf[256];
 
-    (void)snprintf(buf, 256, "@server=%s", i18n_core->address.im_name);
-    if ((atom = XInternAtom(dpy, buf, False)) == 0)
+    if ((atom = XInternAtom (xim->display, "@server=nimf", False)) == 0)
         return False;
-    i18n_core->address.selection = atom;
+
+    xim->address.selection = atom;
 
     if (XIM_Servers == None)
-        XIM_Servers = XInternAtom (dpy, XIM_SERVERS, False);
-    XGetWindowProperty (dpy,
+        XIM_Servers = XInternAtom (xim->display, XIM_SERVERS, False);
+    XGetWindowProperty (xim->display,
                         root,
                         XIM_Servers,
                         0L,
@@ -410,7 +204,7 @@ static int DeleteXi18nAtom(Xi18n i18n_core)
     if (found == True) {
         for (i=i+1; i<length; i++)
             data[i-1] = data[i];
-        XChangeProperty (dpy,
+        XChangeProperty (xim->display,
                          root,
                          XIM_Servers,
                          XA_ATOM,
@@ -421,7 +215,7 @@ static int DeleteXi18nAtom(Xi18n i18n_core)
         ret = True;
     }
     else {
-        XChangeProperty (dpy,
+        XChangeProperty (xim->display,
                          root,
                          XIM_Servers,
                          XA_ATOM,
@@ -436,126 +230,65 @@ static int DeleteXi18nAtom(Xi18n i18n_core)
     return ret;
 }
 
-
-/* XIM protocol methods */
-static void *xi18n_setup (Display *dpy, XIMArg *args)
-{
-    Xi18n i18n_core;
-
-    if ((i18n_core = (Xi18n) malloc (sizeof (Xi18nCore))) == (Xi18n) NULL)
-        return NULL;
-    /*endif*/
-
-    memset (i18n_core, 0, sizeof (Xi18nCore));
-
-    i18n_core->address.dpy = dpy;
-
-    if (ParseArgs (i18n_core, args) != NULL)
-    {
-        XFree (i18n_core);
-        return NULL;
-    }
-    /*endif*/
-    if (G_BYTE_ORDER == G_LITTLE_ENDIAN)
-        i18n_core->address.im_byteOrder = 'l';
-    else
-        i18n_core->address.im_byteOrder = 'B';
-    /*endif*/
-
-    /* install IMAttr and ICAttr list in i18n_core */
-    _Xi18nInitAttrList (i18n_core);
-
-    /* install IMExtension list in i18n_core */
-    _Xi18nInitExtension (i18n_core);
-
-    return i18n_core;
-}
-
 static void
 ReturnSelectionNotify (NimfXim *xim, XSelectionRequestEvent *ev)
 {
-    Xi18n i18n_core = xim->xims->protocol;
-    XEvent event;
-    char buf[4096];
+  XEvent event;
+  const char *data = NULL;
 
-    event.type = SelectionNotify;
-    event.xselection.requestor = ev->requestor;
-    event.xselection.selection = ev->selection;
-    event.xselection.target = ev->target;
-    event.xselection.time = ev->time;
-    event.xselection.property = ev->property;
-    if (ev->target == i18n_core->address.Localename)
-    {
-        snprintf (buf, 4096, "@locale=%s", i18n_core->address.im_locale);
-    }
-    else if (ev->target == i18n_core->address.Transportname)
-    {
-        snprintf (buf, 4096, "@transport=%s", i18n_core->address.im_addr);
-    }
-    /*endif*/
-    XChangeProperty (xim->display,
-                     event.xselection.requestor,
-                     ev->target,
-                     ev->target,
-                     8,
-                     PropModeReplace,
-                     (unsigned char *) buf,
-                     strlen (buf));
-    XSendEvent (xim->display, event.xselection.requestor, False, NoEventMask, &event);
-    XFlush (xim->display);
+  event.type = SelectionNotify;
+  event.xselection.requestor = ev->requestor;
+  event.xselection.selection = ev->selection;
+  event.xselection.target = ev->target;
+  event.xselection.time = ev->time;
+  event.xselection.property = ev->property;
+
+  if (ev->target == xim->address.Localename)
+    data = "@locale=C" SUPPORTED_LOCALES;
+  else if (ev->target == xim->address.Transportname)
+    data = "@transport=X/";
+
+  XChangeProperty (xim->display,
+                   event.xselection.requestor,
+                   ev->target,
+                   ev->target,
+                   8,
+                   PropModeReplace,
+                   (unsigned char *) data,
+                   strlen (data));
+  XSendEvent (xim->display, event.xselection.requestor, False, NoEventMask, &event);
+  XFlush (xim->display);
 }
 
 Bool
 WaitXSelectionRequest (NimfXim *xim,
                        XEvent  *ev)
 {
-    Xi18n i18n_core = xim->xims->protocol;
-
-    if (((XSelectionRequestEvent *) ev)->selection
-        == i18n_core->address.selection)
+    if (((XSelectionRequestEvent *) ev)->selection == xim->address.selection)
     {
         ReturnSelectionNotify (xim, (XSelectionRequestEvent *) ev);
         return True;
     }
-    /*endif*/
+
     return False;
 }
 
-static Status xi18n_openIM(XIMS ims)
+Status
+xi18n_openIM (NimfXim *xim, Window im_window)
 {
-    Xi18n i18n_core = ims->protocol;
-    Display *dpy = i18n_core->address.dpy;
+  if (!SetXi18nSelectionOwner (xim, im_window))
+    return False;
 
-    if (!CheckIMName (i18n_core)
-        ||
-        !SetXi18nSelectionOwner (i18n_core)
-        ||
-        !i18n_core->methods.begin (ims))
-    {
-        XFree (i18n_core->address.im_name);
-        XFree (i18n_core->address.im_locale);
-        XFree (i18n_core->address.im_addr);
-        XFree (i18n_core);
-        return False;
-    }
-    /*endif*/
+  xim->_protocol = XInternAtom (xim->display, "_XIM_PROTOCOL", False);
+  xim->_xconnect = XInternAtom (xim->display, "_XIM_XCONNECT", False);
 
-    XFlush(dpy);
-    return True;
+  XFlush (xim->display);
+  return True;
 }
 
-static Status xi18n_closeIM(XIMS ims)
+Status xi18n_closeIM (NimfXim *xim)
 {
-    Xi18n i18n_core = ims->protocol;
-
-    DeleteXi18nAtom(i18n_core);
-    if (!i18n_core->methods.end (ims))
-        return False;
-
-    XFree (i18n_core->address.im_name);
-    XFree (i18n_core->address.im_locale);
-    XFree (i18n_core->address.im_addr);
-    XFree (i18n_core);
+    DeleteXi18nAtom (xim);
     return True;
 }
 
@@ -607,9 +340,8 @@ static void EventToWireEvent (XEvent *ev, xEvent *event,
     FrameMgrFree(fm);
 }
 
-static Status xi18n_forwardEvent (XIMS ims, XPointer xp)
+Status xi18n_forwardEvent (NimfXim *xim, XPointer xp)
 {
-    Xi18n i18n_core = ims->protocol;
     IMForwardEventStruct *call_data = (IMForwardEventStruct *)xp;
     FrameMgr fm;
     extern XimFrameRec forward_event_fr[];
@@ -620,19 +352,19 @@ static Status xi18n_forwardEvent (XIMS ims, XPointer xp)
     int event_size;
     Xi18nClient *client;
 
-    client = (Xi18nClient *) _Xi18nFindClient (i18n_core, call_data->connect_id);
+    client = (Xi18nClient *) _Xi18nFindClient (xim, call_data->connect_id);
 
     /* create FrameMgr */
     fm = FrameMgrInit (forward_event_fr,
                        NULL,
-                       _Xi18nNeedSwap (i18n_core, call_data->connect_id));
+                       _Xi18nNeedSwap (xim, call_data->connect_id));
 
     total_size = FrameMgrGetTotalSize (fm);
     event_size = sizeof (xEvent);
     reply = (unsigned char *) malloc (total_size + event_size);
     if (!reply)
     {
-        _Xi18nSendMessage (ims,
+        _Xi18nSendMessage (xim,
                            call_data->connect_id,
                            XIM_ERROR,
                            0,
@@ -656,11 +388,11 @@ static Status xi18n_forwardEvent (XIMS ims, XPointer xp)
     EventToWireEvent (&(call_data->event),
                       (xEvent *) replyp,
                       &serial,
-                      _Xi18nNeedSwap (i18n_core, call_data->connect_id));
+                      _Xi18nNeedSwap (xim, call_data->connect_id));
 
     FrameMgrPutToken (fm, serial);
 
-    _Xi18nSendMessage (ims,
+    _Xi18nSendMessage (xim,
                        call_data->connect_id,
                        XIM_FORWARD_EVENT,
                        0,
@@ -673,9 +405,8 @@ static Status xi18n_forwardEvent (XIMS ims, XPointer xp)
     return True;
 }
 
-static Status xi18n_commit (XIMS ims, XPointer xp)
+Status xi18n_commit (NimfXim *xim, XPointer xp)
 {
-    Xi18n i18n_core = ims->protocol;
     IMCommitStruct *call_data = (IMCommitStruct *)xp;
     FrameMgr fm;
     extern XimFrameRec commit_chars_fr[];
@@ -692,7 +423,7 @@ static Status xi18n_commit (XIMS ims, XPointer xp)
     {
         fm = FrameMgrInit (commit_chars_fr,
                            NULL,
-                           _Xi18nNeedSwap (i18n_core, call_data->connect_id));
+                           _Xi18nNeedSwap (xim, call_data->connect_id));
 
         /* set length of STRING8 */
         str_length = strlen (call_data->commit_string);
@@ -701,7 +432,7 @@ static Status xi18n_commit (XIMS ims, XPointer xp)
         reply = (unsigned char *) malloc (total_size);
         if (!reply)
         {
-            _Xi18nSendMessage (ims,
+            _Xi18nSendMessage (xim,
                                call_data->connect_id,
                                XIM_ERROR,
                                0,
@@ -724,7 +455,7 @@ static Status xi18n_commit (XIMS ims, XPointer xp)
     {
         fm = FrameMgrInit (commit_both_fr,
                            NULL,
-                           _Xi18nNeedSwap (i18n_core, call_data->connect_id));
+                           _Xi18nNeedSwap (xim, call_data->connect_id));
         /* set length of STRING8 */
         str_length = strlen (call_data->commit_string);
         if (str_length > 0)
@@ -734,7 +465,7 @@ static Status xi18n_commit (XIMS ims, XPointer xp)
         reply = (unsigned char *) malloc (total_size);
         if (!reply)
         {
-            _Xi18nSendMessage (ims,
+            _Xi18nSendMessage (xim,
                                call_data->connect_id,
                                XIM_ERROR,
                                0,
@@ -757,7 +488,7 @@ static Status xi18n_commit (XIMS ims, XPointer xp)
         /*endif*/
     }
     /*endif*/
-    _Xi18nSendMessage (ims,
+    _Xi18nSendMessage (xim,
                        call_data->connect_id,
                        XIM_COMMIT,
                        0,
@@ -769,124 +500,38 @@ static Status xi18n_commit (XIMS ims, XPointer xp)
     return True;
 }
 
-int nimf_xim_call_callback (XIMS ims, XPointer xp)
+int nimf_xim_call_callback (NimfXim *xim, XPointer xp)
 {
     IMProtocol *call_data = (IMProtocol *)xp;
     switch (call_data->major_code)
     {
     case XIM_GEOMETRY:
-        return _Xi18nGeometryCallback (ims, call_data);
+        return _Xi18nGeometryCallback (xim, call_data);
 
     case XIM_PREEDIT_START:
-        return _Xi18nPreeditStartCallback (ims, call_data);
+        return _Xi18nPreeditStartCallback (xim, call_data);
 
     case XIM_PREEDIT_DRAW:
-        return _Xi18nPreeditDrawCallback (ims, call_data);
+        return _Xi18nPreeditDrawCallback (xim, call_data);
 
     case XIM_PREEDIT_CARET:
-        return _Xi18nPreeditCaretCallback (ims, call_data);
+        return _Xi18nPreeditCaretCallback (xim, call_data);
 
     case XIM_PREEDIT_DONE:
-        return _Xi18nPreeditDoneCallback (ims, call_data);
+        return _Xi18nPreeditDoneCallback (xim, call_data);
 
     case XIM_STATUS_START:
-        return _Xi18nStatusStartCallback (ims, call_data);
+        return _Xi18nStatusStartCallback (xim, call_data);
 
     case XIM_STATUS_DRAW:
-        return _Xi18nStatusDrawCallback (ims, call_data);
+        return _Xi18nStatusDrawCallback (xim, call_data);
 
     case XIM_STATUS_DONE:
-        return _Xi18nStatusDoneCallback (ims, call_data);
+        return _Xi18nStatusDoneCallback (xim, call_data);
 
     case XIM_STR_CONVERSION:
-        return _Xi18nStringConversionCallback (ims, call_data);
+        return _Xi18nStringConversionCallback (xim, call_data);
     }
     /*endswitch*/
     return False;
-}
-
-/* preeditStart and preeditEnd are used only for Dynamic Event Flow. */
-static int xi18n_preeditStart (XIMS ims, XPointer xp)
-{
-    IMProtocol *call_data = (IMProtocol *)xp;
-    Xi18n i18n_core = ims->protocol;
-    IMPreeditStateStruct *preedit_state =
-        (IMPreeditStateStruct *) &call_data->preedit_state;
-    long mask;
-    int on_key_num = i18n_core->address.on_keys.count_keys;
-    int off_key_num = i18n_core->address.off_keys.count_keys;
-
-    if (on_key_num == 0  &&  off_key_num == 0)
-        return False;
-    /*endif*/
-    if (i18n_core->address.imvalue_mask & I18N_FILTERMASK)
-        mask = i18n_core->address.filterevent_mask;
-    else
-        mask = DEFAULT_FILTER_MASK;
-    /*endif*/
-    _Xi18nSetEventMask (ims,
-                        preedit_state->connect_id,
-                        preedit_state->connect_id,
-                        preedit_state->icid,
-                        mask,
-                        ~mask);
-    return True;
-}
-
-static int xi18n_preeditEnd (XIMS ims, XPointer xp)
-{
-    IMProtocol *call_data = (IMProtocol *)xp;
-    Xi18n i18n_core = ims->protocol;
-    int on_key_num = i18n_core->address.on_keys.count_keys;
-    int off_key_num = i18n_core->address.off_keys.count_keys;
-    IMPreeditStateStruct *preedit_state;
-
-    preedit_state = (IMPreeditStateStruct *) &call_data->preedit_state;
-
-    if (on_key_num == 0  &&  off_key_num == 0)
-        return False;
-    /*endif*/
-
-    _Xi18nSetEventMask (ims,
-                        preedit_state->connect_id,
-                        preedit_state->connect_id,
-                        preedit_state->icid,
-                        0,
-                        0);
-    return True;
-}
-
-static int xi18n_syncXlib (XIMS ims, XPointer xp)
-{
-    IMProtocol *call_data = (IMProtocol *)xp;
-    Xi18n i18n_core = ims->protocol;
-    IMSyncXlibStruct *sync_xlib;
-
-    extern XimFrameRec sync_fr[];
-    FrameMgr fm;
-    CARD16 connect_id = call_data->any.connect_id;
-    int total_size;
-    unsigned char *reply;
-
-    sync_xlib = (IMSyncXlibStruct *) &call_data->sync_xlib;
-    fm = FrameMgrInit (sync_fr, NULL,
-                       _Xi18nNeedSwap (i18n_core, connect_id));
-    total_size = FrameMgrGetTotalSize(fm);
-    reply = (unsigned char *) malloc (total_size);
-    if (!reply) {
-        _Xi18nSendMessage (ims, connect_id, XIM_ERROR, 0, 0, 0);
-        return False;
-    }
-    memset (reply, 0, total_size);
-    FrameMgrSetBuffer (fm, reply);
-
-    /* input input-method ID */
-    FrameMgrPutToken (fm, connect_id);
-    /* input input-context ID */
-    FrameMgrPutToken (fm, sync_xlib->icid);
-    _Xi18nSendMessage (ims, connect_id, XIM_SYNC, 0, reply, total_size);
-
-    FrameMgrFree (fm);
-    XFree(reply);
-    return True;
 }

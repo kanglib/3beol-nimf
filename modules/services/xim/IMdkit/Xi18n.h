@@ -1,3 +1,4 @@
+/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*- */
 /******************************************************************
 
          Copyright (C) 1994-1995 Sun Microsystems, Inc.
@@ -49,7 +50,6 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #include <stddef.h>
 #include <stdlib.h>
-#include "IMdkit.h"
 
 /* XI18N Valid Attribute Name Definition */
 #define ExtForwardKeyEvent	"extForwardKeyEvent"
@@ -67,12 +67,7 @@ IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #define LOCALES		"LOCALES"
 #define TRANSPORT	"TRANSPORT"
 
-typedef struct
-{
-    char        *transportname;
-    int         namelen;
-    Bool        (*checkAddr) ();
-} TransportSW;
+typedef struct _NimfXim NimfXim;
 
 typedef struct _XIMPending
 {
@@ -165,8 +160,6 @@ typedef struct _Xi18nClient
     void *trans_rec;		/* contains transport specific data  */
     struct _Xi18nClient *next;
 } Xi18nClient;
-
-typedef struct _Xi18nCore *Xi18n;
 
 /*
  * Callback Struct for XIM Protocol
@@ -452,28 +445,11 @@ typedef union _IMProtocol
     long pad[32];
 } IMProtocol;
 
-typedef int (*IMProtoHandler) (XIMS, IMProtocol*, void*);
-
-#define DEFAULT_FILTER_MASK	(KeyPressMask)
+typedef int (*IMProtoHandler) (NimfXim *, IMProtocol*, void*);
 
 /* Xi18nAddressRec structure */
 typedef struct _Xi18nAddressRec
 {
-    Display	*dpy;
-    CARD8	im_byteOrder;	/* byte order 'B' or 'l' */
-    /* IM Values */
-    long	imvalue_mask;
-    Window	im_window;	/* IMServerWindow */
-    char	*im_name;	/* IMServerName */
-    char	*im_locale;	/* IMLocale */
-    char	*im_addr;	/* IMServerTransport */
-    XIMStyles	input_styles;	/* IMInputStyles */
-    XIMTriggerKeys on_keys;	/* IMOnKeysList */
-    XIMTriggerKeys off_keys;	/* IMOffKeysList */
-    XIMEncodings encoding_list; /* IMEncodingList */
-    IMProtoHandler improto;	/* IMProtocolHandler */
-    void	*user_data;	/* IMUserData */
-    long	filterevent_mask; /* IMFilterEventMask */
     /* XIM_SERVERS target Atoms */
     Atom	selection;
     Atom	Localename;
@@ -489,31 +465,10 @@ typedef struct _Xi18nAddressRec
     /* XIMExtension List */
     int		ext_num;
     XIMExt	extension[COMMON_EXTENSIONS_NUM];
-    /* transport specific connection address */
-    void	*connect_addr;
-    /* actual data is defined:
-       XSpecRec in Xi18nX.h for X-based connection.
-       TransSpecRec in Xi18nTr.h for Socket-based connection.
-     */
     /* clients table */
     Xi18nClient *clients;
     Xi18nClient *free_clients;
 } Xi18nAddressRec;
-
-typedef struct _Xi18nMethodsRec
-{
-    Bool (*begin) (XIMS);
-    Bool (*end) (XIMS);
-    Bool (*send) (XIMS, CARD16, unsigned char*, long);
-    Bool (*wait) (XIMS, CARD16, CARD8, CARD8);
-    Bool (*disconnect) (XIMS, CARD16);
-} Xi18nMethodsRec;
-
-typedef struct _Xi18nCore
-{
-    Xi18nAddressRec address;
-    Xi18nMethodsRec methods;
-} Xi18nCore;
 
 #endif
 

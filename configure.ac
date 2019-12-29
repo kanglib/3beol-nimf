@@ -1,6 +1,6 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_INIT(nimf, 2019.07.10)
+AC_INIT(nimf, 2019.08.14)
 
 AC_CONFIG_HEADERS([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -259,7 +259,8 @@ dnl nimf-settings
 dnl ***************************************************************************
 
 PKG_CHECK_MODULES(NIMF_SETTINGS_DEPS,
-                  [gtk+-3.0 gio-2.0 gmodule-2.0 libxklavier gdk-3.0 gdk-x11-3.0])
+                  [gtk+-3.0 glib-2.0 >= 2.54 gio-2.0 gmodule-2.0 libxklavier
+                   gdk-3.0 gdk-x11-3.0])
 
 dnl ***************************************************************************
 dnl im-config data
@@ -287,7 +288,7 @@ dnl ***************************************************************************
 dnl Check for gtk-doc
 dnl ***************************************************************************
 
-GTK_DOC_CHECK([1.14],[--flavour no-tmpl])
+GTK_DOC_CHECK([1.26],[--flavour no-tmpl])
 
 dnl ***************************************************************************
 

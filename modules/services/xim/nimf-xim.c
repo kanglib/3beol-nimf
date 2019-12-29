@@ -22,6 +22,7 @@
 #include "nimf-xim.h"
 #include "IMdkit/i18nMethod.h"
 #include "IMdkit/i18nX.h"
+#include "IMdkit/XimFunc.h"
 
 G_DEFINE_DYNAMIC_TYPE (NimfXim, nimf_xim, NIMF_TYPE_SERVICE);
 
@@ -254,11 +255,11 @@ static int nimf_xim_forward_event (NimfXim              *xim,
 
   NimfServiceIC *ic;
   ic = g_hash_table_lookup (xim->ics, GUINT_TO_POINTER (data->icid));
-  retval  = nimf_service_ic_filter_event (ic, event);
+  retval = nimf_service_ic_filter_event (ic, event);
   nimf_event_free (event);
 
   if (G_UNLIKELY (!retval))
-    IMForwardEvent (xim->xims, (XPointer) data);
+    return xi18n_forwardEvent (xim, (XPointer) data);
 
   return 1;
 }
@@ -318,19 +319,14 @@ static int nimf_xim_reset_ic (NimfXim         *xim,
 
   return 1;
 }
-
-static int
-on_incoming_message (XIMS        xims,
-                     IMProtocol *data,
-                     NimfXim    *xim)
+/* FIXME */
+int
+on_incoming_message (NimfXim    *xim,
+                     IMProtocol *data)
 {
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
-  g_return_val_if_fail (xims != NULL, True);
   g_return_val_if_fail (data != NULL, True);
-
-  if (!NIMF_IS_XIM (xim))
-    g_error ("Invalid IMUserData");
 
   int retval;
 
@@ -456,10 +452,10 @@ nimf_xevent_source_dispatch (GSource     *source,
           {
             XClientMessageEvent cme = *(XClientMessageEvent *) &event;
 
-            if (cme.message_type == xim->atom_xconnect)
-              WaitXConnectMessage (xim->display, &event, (XPointer) xim->xims);
-            else if (cme.message_type == xim->atom_protocol)
-              WaitXIMProtocol (xim->display, &event, (XPointer) xim->xims);
+            if (cme.message_type == xim->_xconnect)
+              ReadXConnectMessage (xim, (XClientMessageEvent *) &event);
+            else if (cme.message_type == xim->_protocol)
+              WaitXIMProtocol (xim, &event);
             else
               g_warning (G_STRLOC ": %s: ClientMessage type: %ld not handled",
                          G_STRFUNC, cme.message_type);
@@ -524,7 +520,6 @@ static gboolean nimf_xim_start (NimfService *service)
   g_debug (G_STRLOC ": %s", G_STRFUNC);
 
   NimfXim *xim = NIMF_XIM (service);
-  XIMS     xims;
 
   if (xim->active)
     return TRUE;
@@ -604,36 +599,23 @@ static gboolean nimf_xim_start (NimfService *service)
  * styles.
  */
 
-  XIMStyle im_styles [] = {
-    /* on-the-spot */
-    XIMPreeditCallbacks | XIMStatusNothing,
-    XIMPreeditCallbacks | XIMStatusNone,
-    /* over-the-spot */
-    XIMPreeditPosition  | XIMStatusNothing,
-    XIMPreeditPosition  | XIMStatusNone,
-    /* root-window */
-    XIMPreeditNothing   | XIMStatusNothing,
-    XIMPreeditNothing   | XIMStatusNone,
-    0
-  };
+  xim->im_styles.count_styles = 6;
+  xim->im_styles.supported_styles = g_malloc (sizeof (XIMStyle) * xim->im_styles.count_styles);
+  /* on-the-spot */
+  xim->im_styles.supported_styles[0] = XIMPreeditCallbacks | XIMStatusNothing;
+  xim->im_styles.supported_styles[1] = XIMPreeditCallbacks | XIMStatusNone;
+  /* over-the-spot */
+  xim->im_styles.supported_styles[2] = XIMPreeditPosition  | XIMStatusNothing;
+  xim->im_styles.supported_styles[3] = XIMPreeditPosition  | XIMStatusNone;
+  /* root-window */
+  xim->im_styles.supported_styles[4] = XIMPreeditNothing   | XIMStatusNothing;
+  xim->im_styles.supported_styles[5] = XIMPreeditNothing   | XIMStatusNone;
 
-  XIMEncoding ims_encodings[] = {
-    "COMPOUND_TEXT",
-    NULL
-  };
-
-  XIMStyles    styles;
-  XIMEncodings encodings;
-
-  styles.count_styles = sizeof (im_styles) / sizeof (XIMStyle) - 1;
-  styles.supported_styles = im_styles;
-
-  encodings.count_encodings = sizeof (ims_encodings) / sizeof (XIMEncoding) - 1;
-  encodings.supported_encodings = ims_encodings;
+  xim->im_event_mask = KeyPressMask | KeyReleaseMask;
 
   XSetWindowAttributes attrs;
 
-  attrs.event_mask = KeyPressMask | KeyReleaseMask;
+  attrs.event_mask = xim->im_event_mask;
   attrs.override_redirect = True;
 
   xim->im_window = XCreateWindow (xim->display, /* Display *display */
@@ -647,22 +629,15 @@ static gboolean nimf_xim_start (NimfService *service)
                                   CWOverrideRedirect | CWEventMask, /* unsigned long valuemask */
                                   &attrs);      /* XSetWindowAttributes *attributes */
 
-  xims = IMOpenIM (xim->display,
-                   IMServerWindow,     xim->im_window,
-                   IMServerName,       PACKAGE,
-                   IMLocale,           "C,en,ja,ko,zh", /* FIXME: Make get_supported_locales() */
-                   IMServerTransport,  "X/",
-                   IMInputStyles,      &styles,
-                   IMEncodingList,     &encodings,
-                   IMProtocolHandler,  on_incoming_message,
-                   IMUserData,         xim,
-                   IMFilterEventMask,  KeyPressMask | KeyReleaseMask,
-                   NULL);
+  if (G_BYTE_ORDER == G_LITTLE_ENDIAN)
+      xim->byte_order = 'l';
+  else
+      xim->byte_order = 'B';
 
-  xim->atom_xconnect  = XInternAtom (xim->display, "_XIM_XCONNECT", False);
-  xim->atom_protocol  = XInternAtom (xim->display, "_XIM_PROTOCOL", False);
+  _Xi18nInitAttrList  (xim);
+  _Xi18nInitExtension (xim);
 
-  if (!xims)
+  if (!xi18n_openIM (xim, xim->im_window))
   {
     XDestroyWindow (xim->display, xim->im_window);
     XCloseDisplay  (xim->display);
@@ -673,7 +648,6 @@ static gboolean nimf_xim_start (NimfService *service)
     return FALSE;
   }
 
-  xim->xims = xims;
   xim->xevent_source = nimf_xevent_source_new (xim);
   g_source_attach (xim->xevent_source, NULL);
   XSetErrorHandler (on_xerror);
@@ -704,11 +678,9 @@ static void nimf_xim_stop (NimfService *service)
     xim->im_window = 0;
   }
 
-  if (xim->xims)
-  {
-    IMCloseIM (xim->xims);
-    xim->xims = NULL;
-  }
+  g_free (xim->im_styles.supported_styles);
+
+  xi18n_closeIM (xim);
 
   if (xim->display)
   {

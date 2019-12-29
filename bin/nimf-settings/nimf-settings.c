@@ -716,7 +716,21 @@ on_comparison (const char *a,
 
     source = g_settings_schema_source_get_default ();
     schema_a = g_settings_schema_source_lookup (source, a, FALSE);
+
+    if (schema_a == NULL)
+    {
+      g_warning (G_STRLOC ": %s: %s is not found.", G_STRFUNC, a);
+      return g_strcmp0 (a, b);
+    }
+
     schema_b = g_settings_schema_source_lookup (source, b, FALSE);
+
+    if (schema_b == NULL)
+    {
+      g_warning (G_STRLOC ": %s: %s is not found.", G_STRFUNC, b);
+      return g_strcmp0 (a, b);
+    }
+
     key_a = g_settings_schema_get_key (schema_a, "hidden-schema-name");
     key_b = g_settings_schema_get_key (schema_b, "hidden-schema-name");
     variant_a = g_settings_schema_key_get_default_value (key_a);
@@ -1564,20 +1578,23 @@ nimf_settings_page_new (const gchar  *schema_id)
   if (!g_strcmp0 (schema_id, "org.nimf"))
   {
     GFile *file;
-    gchar *filename;
+    gchar *xprofile;
+    gchar *conf;
 
-    file = g_file_new_build_filename (G_DIR_SEPARATOR_S, g_get_home_dir (),
-                                      ".xprofile", NULL);
-    filename = g_build_filename (G_DIR_SEPARATOR_S, g_get_user_config_dir (),
-                                 "environment.d", INPUT_CONF, NULL);
+    xprofile = g_build_filename (G_DIR_SEPARATOR_S, g_get_home_dir (),
+                                 ".xprofile", NULL);
+    file = g_file_new_for_path (xprofile);
+    conf = g_build_filename (G_DIR_SEPARATOR_S, g_get_user_config_dir (),
+                             "environment.d", INPUT_CONF, NULL);
     g_settings_set_boolean (page->gsettings, "setup-environment-variables",
-                            !g_access (filename, F_OK) &&
+                            !g_access (conf, F_OK) &&
                             xprofile_contains_generator (file));
     g_signal_connect (page->gsettings, "changed::setup-environment-variables",
                       G_CALLBACK (on_setup_environment), NULL);
 
     g_object_unref (file);
-    g_free (filename);
+    g_free (xprofile);
+    g_free (conf);
   }
 
   g_strfreev (keys);
@@ -1860,13 +1877,21 @@ nimf_settings_build_main_window (NimfSettings *nsettings)
     gchar              *title;
     gchar              *p;
     gint                level = 0;
+    gchar              *schema_id = schema_list->data;
 
-    schema = g_settings_schema_source_lookup (source, schema_list->data, FALSE);
+    schema = g_settings_schema_source_lookup (source, schema_id, FALSE);
+
+    if (schema == NULL)
+    {
+      g_warning (G_STRLOC ": %s: %s is not found.", G_STRFUNC, schema_id);
+      continue;
+    }
+
     key = g_settings_schema_get_key (schema, "hidden-schema-name");
     variant = g_settings_schema_key_get_default_value (key);
     title = g_strdup (g_variant_get_string (variant, NULL));
 
-    for (p = (gchar *) schema_list->data; *p != 0; p++)
+    for (p = schema_id; *p != 0; p++)
       if (*p == '.')
         level++;
 
@@ -1887,7 +1912,7 @@ nimf_settings_build_main_window (NimfSettings *nsettings)
     }
 
     row = gtk_list_box_row_new ();
-    gtk_widget_set_name (row, schema_list->data);
+    gtk_widget_set_name (row, schema_id);
     gtk_list_box_row_set_activatable (GTK_LIST_BOX_ROW (row), FALSE);
     gtk_container_add (GTK_CONTAINER (row), label);
     gtk_widget_set_halign (label, GTK_ALIGN_START);

@@ -1,11 +1,11 @@
 Name:     nimf
 Summary:  An input method framework
-Version:  2019.07.10
+Version:  2019.08.14
 Release:  1%{?dist}
 License:  LGPLv3+
 Group:    User Interface/Desktops
 URL:      https://gitlab.com/nimf-i18n/nimf
-Source0:  %{name}-%{version}.tar.xz
+Source0:  https://gitlab.com/nimf-i18n/nimf/-/archive/master/nimf-master.tar.bz2
 
 BuildRequires: gcc-c++
 BuildRequires: libtool
@@ -14,25 +14,55 @@ BuildRequires: pkgconfig
 BuildRequires: intltool >= 0.50.1
 BuildRequires: gtk3-devel
 BuildRequires: gtk2-devel
+%if 0%{?is_opensuse}
 BuildRequires: libqt4-devel
 BuildRequires: libqt5-qtbase-devel
 BuildRequires: libQt5Gui-private-headers-devel
 BuildRequires: libappindicator3-devel
 BuildRequires: rsvg-view
 BuildRequires: noto-sans-cjk-fonts
+%else
+BuildRequires: qt4-devel
+BuildRequires: qt5-qtbase-devel
+BuildRequires: qt5-qtbase-private-devel
+BuildRequires: libappindicator-gtk3-devel
+BuildRequires: librsvg2-tools
+BuildRequires: google-noto-cjk-fonts
+%endif
 BuildRequires: libhangul-devel
 BuildRequires: anthy-devel
 BuildRequires: anthy
-BuildRequires: librime-devel >= 1.2.9
 BuildRequires: libxkbcommon-devel
 BuildRequires: wayland-devel
 BuildRequires: libxklavier-devel
-BuildRequires: m17n-lib-devel >= 1.7.0
-BuildRequires: m17n-db >= 1.7.0
 BuildRequires: gtk-doc
+%if 0%{?fedora} || 0%{?is_opensuse}
+BuildRequires: librime-devel >= 1.2.9
+BuildRequires: m17n-lib-devel >= 1.7.0
+%endif
+%if 0%{?fedora}
+BuildRequires: m17n-db-devel >= 1.7.0
+%endif
+%if 0%{?is_opensuse}
+BuildRequires: m17n-db >= 1.7.0
+%endif
 
-Requires:         im-chooser
-Requires:         anthy, libm17n0 >= 1.7.0, m17n-db >= 1.7.0
+Requires: anthy
+Requires: glib2
+Requires: gtk3
+Requires: im-chooser
+%if 0%{?is_opensuse}
+Requires: libappindicator3
+%else
+Requires: libappindicator-gtk3
+%endif
+Requires: libhangul
+Requires: libxkbcommon
+Requires: libxklavier
+%if 0%{?fedora} || 0%{?is_opensuse}
+Requires: librime
+Requires: m17n-lib >= 1.7.0, m17n-db >= 1.7.0
+%endif
 Requires(post):   %{_sbindir}/alternatives
 Requires(postun): %{_sbindir}/alternatives
 
@@ -55,7 +85,12 @@ This package contains development files.
 %setup -q
 
 %build
+%if 0%{?rhel}
+./autogen.sh --prefix=/usr --libdir=%{_libdir} --enable-gtk-doc \
+  --with-imsettings-data --disable-nimf-m17n --disable-nimf-rime
+%else
 ./autogen.sh --prefix=/usr --libdir=%{_libdir} --with-imsettings-data --enable-gtk-doc
+%endif
 make %{?_smp_mflags}
 
 %install
@@ -114,5 +149,5 @@ fi
 %{_libdir}/pkgconfig/*
 
 %changelog
-* Wed Jul 10 2019 Hodong Kim <cogniti@gmail.com> - 2019.07.10-1
+* Wed Aug 14 2019 Hodong Kim <cogniti@gmail.com> - 2019.08.14-1
 - See https://gitlab.com/nimf-i18n/nimf/blob/master/debian/changelog

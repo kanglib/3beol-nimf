@@ -1,3 +1,4 @@
+/* -*- Mode: C; indent-tabs-mode: nil; c-basic-offset: 2; tab-width: 2 -*- */
 /* $XConsortium: XimProto.h,v 1.2 94/01/20 18:02:24 rws Exp $ */
 /******************************************************************
 
@@ -42,13 +43,6 @@ PERFORMANCE OF THIS SOFTWARE.
 #define XIM_TRANSPORT		"TRANSPORT"
 
 /*
- * categories in XIM_SERVERS
- */
-#define XIM_SERVER_CATEGORY	"@server="
-#define XIM_LOCAL_CATEGORY	"@locale="
-#define XIM_TRANSPORT_CATEGORY	"@transport="
-
-/*
  * Xim implementation revision
  */
 #define PROTOCOLMAJORVERSION		0
@@ -74,9 +68,6 @@ PERFORMANCE OF THIS SOFTWARE.
 #define	XIM_OPEN_REPLY			 31
 #define	XIM_CLOSE			 32
 #define	XIM_CLOSE_REPLY			 33
-#define	XIM_REGISTER_TRIGGERKEYS	 34
-#define	XIM_TRIGGER_NOTIFY		 35
-#define	XIM_TRIGGER_NOTIFY_REPLY	 36
 #define	XIM_SET_EVENT_MASK		 37
 #define	XIM_ENCODING_NEGOTIATION	 38
 #define	XIM_ENCODING_NEGOTIATION_REPLY	 39
@@ -145,12 +136,6 @@ PERFORMANCE OF THIS SOFTWARE.
 #define XIM_BadSomething		999
 
 /*
- * byte order
- */
-#define BIGENDIAN	(CARD8) 0x42	/* MSB first */
-#define LITTLEENDIAN	(CARD8) 0x6c	/* LSB first */
-
-/*
  * values for the type of XIMATTR & XICATTR
  */
 #define	XimType_SeparatorOfNestedList	0
@@ -164,7 +149,6 @@ PERFORMANCE OF THIS SOFTWARE.
 #define	XimType_XPoint			12
 #define XimType_XFontSet		13
 #define XimType_XIMOptions		14
-#define XimType_XIMHotKeyTriggers	15
 #define XimType_XIMHotKeyState		16
 #define XimType_XIMStringConversion	17
 #define XimType_XIMValuesList		18
@@ -175,11 +159,6 @@ PERFORMANCE OF THIS SOFTWARE.
  */
 #define	XIM_Encoding_NameCategory	0
 #define	XIM_Encoding_DetailCategory	1
-
-/*
- * value for the index of XIM_ENCODING_NEGOTIATON_REPLY
- */
-#define	XIM_Default_Encoding_IDX	-1
 
 /*
  * value for the flag of XIM_FORWARD_EVENT, XIM_COMMIT

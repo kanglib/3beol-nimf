@@ -5,7 +5,7 @@ Release:  1%{?dist}
 License:  LGPLv3+
 Group:    User Interface/Desktops
 URL:      https://gitlab.com/nimf-i18n/nimf
-Source0:  https://gitlab.com/nimf-i18n/nimf/-/archive/master/nimf-master.tar.bz2
+Source0:  %{name}-%{version}.tar.gz
 
 BuildRequires: gcc-c++
 BuildRequires: libtool
@@ -27,11 +27,8 @@ BuildRequires: qt5-qtbase-devel
 BuildRequires: qt5-qtbase-private-devel
 BuildRequires: libappindicator-gtk3-devel
 BuildRequires: librsvg2-tools
-BuildRequires: google-noto-cjk-fonts
 %endif
 BuildRequires: libhangul-devel
-BuildRequires: anthy-devel
-BuildRequires: anthy
 BuildRequires: libxkbcommon-devel
 BuildRequires: wayland-devel
 BuildRequires: libxklavier-devel
@@ -47,7 +44,6 @@ BuildRequires: m17n-db-devel >= 1.7.0
 BuildRequires: m17n-db >= 1.7.0
 %endif
 
-Requires: anthy
 Requires: glib2
 Requires: gtk3
 Requires: im-chooser
@@ -87,7 +83,7 @@ This package contains development files.
 %build
 %if 0%{?rhel}
 ./autogen.sh --prefix=/usr --libdir=%{_libdir} --enable-gtk-doc \
-  --with-imsettings-data --disable-nimf-m17n --disable-nimf-rime
+  --with-imsettings-data --disable-nimf-m17n --disable-nimf-rime --disable-nimf-anthy
 %else
 ./autogen.sh --prefix=/usr --libdir=%{_libdir} --with-imsettings-data --enable-gtk-doc
 %endif
